@@ -1224,7 +1224,8 @@ async function startGeocoding(){
     }
     
     // 네이버도 실패하면 Nominatim 폴백
-    if(!result) result=await geocodeNominatim(row.company, row.resolvedRegion);
+    // CORS 문제로 비활성화
+    // if(!result) result=await geocodeNominatim(row.company, row.resolvedRegion);
 
     if(result){
       geoCache[cacheKey]=[result.lat,result.lng,result.region];
