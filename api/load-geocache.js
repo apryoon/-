@@ -2,49 +2,40 @@ import { getRedisClient } from './redis-client.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { password, cache } = req.body;
-    
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
-    
-    if (password !== adminPassword) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    if (!cache) {
-      return res.status(400).json({ error: 'Cache data required' });
-    }
-
     const redis = getRedisClient();
+    let cache = null;
     
     if (redis) {
-      await redis.set('geo_cache', JSON.stringify(cache));
-      console.log('Geocache saved to Redis');
+      const stored = await redis.get('geo_cache');
+      if (stored) {
+        cache = JSON.parse(stored);
+        console.log('Geocache loaded from Redis');
+      }
     } else {
-      console.warn('Redis not available, cache not persisted');
+      console.warn('Redis not available');
+    }
+    
+    if (!cache) {
+      return res.status(200).json({ cache: {} });
     }
 
-    const cacheSize = Object.keys(cache).length;
-    
-    return res.status(200).json({
-      success: true,
-      cacheSize,
-      timestamp: new Date().toISOString()
-    });
+    return res.status(200).json({ cache });
 
   } catch (error) {
-    console.error('Save geocache error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Load geocache error:', error);
+    return res.status(200).json({ cache: {} });
   }
 }
