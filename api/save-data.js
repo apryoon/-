@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { password, data } = req.body;
+    const { password, cache } = req.body;
     
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
     
@@ -22,29 +22,29 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    if (!data) {
-      return res.status(400).json({ error: 'Data required' });
+    if (!cache) {
+      return res.status(400).json({ error: 'Cache data required' });
     }
 
     const redis = getRedisClient();
     
     if (redis) {
-      await redis.set('dashboard_data', JSON.stringify(data));
-      console.log('Data saved to Redis');
+      await redis.set('geo_cache', JSON.stringify(cache));
+      console.log('Geocache saved to Redis');
     } else {
-      console.warn('Redis not available, data not persisted');
+      console.warn('Redis not available, cache not persisted');
     }
-    
-    const rowCount = Array.isArray(data) ? data.length : 0;
+
+    const cacheSize = Object.keys(cache).length;
     
     return res.status(200).json({
       success: true,
-      rowCount,
+      cacheSize,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('Save data error:', error);
+    console.error('Save geocache error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
