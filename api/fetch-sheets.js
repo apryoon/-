@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  // CORS 헤더
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -29,6 +30,8 @@ export default async function handler(req, res) {
 
     const csvText = await response.text();
     
+    // CSV로 반환 (JSON 아님!)
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     return res.status(200).send(csvText);
 
   } catch (error) {
