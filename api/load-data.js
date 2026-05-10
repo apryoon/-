@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { getRedisClient } from './redis-client.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,16 +15,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    const data = await kv.get('dashboard_data');
+    const redis = getRedisClient();
+    let data = null;
+    
+    if (redis) {
+      const stored = await redis.get('dashboard_data');
+      if (stored) {
+        data = JSON.parse(stored);
+        console.log('Data loaded from Redis');
+      }
+    } else {
+      console.warn('Redis not available');
+    }
     
     if (!data) {
-      return res.status(404).json({ error: 'No data found' });
+      return res.status(200).json({ data: [] });
     }
 
     return res.status(200).json({ data });
 
   } catch (error) {
     console.error('Load data error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(200).json({ data: [] });
   }
 }
