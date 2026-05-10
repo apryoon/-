@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { getRedisClient } from './redis-client.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,8 +26,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Data required' });
     }
 
-    // Store data in Vercel KV
-    await kv.set('dashboard_data', data);
+    const redis = getRedisClient();
+    
+    if (redis) {
+      await redis.set('dashboard_data', JSON.stringify(data));
+      console.log('Data saved to Redis');
+    } else {
+      console.warn('Redis not available, data not persisted');
+    }
     
     const rowCount = Array.isArray(data) ? data.length : 0;
     
