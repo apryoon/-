@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { getRedisClient } from './redis-client.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,8 +26,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Cache data required' });
     }
 
-    await kv.set('geo_cache', cache);
+    const redis = getRedisClient();
     
+    if (redis) {
+      await redis.set('geo_cache', JSON.stringify(cache));
+      console.log('Geocache saved to Redis');
+    } else {
+      console.warn('Redis not available, cache not persisted');
+    }
+
     const cacheSize = Object.keys(cache).length;
     
     return res.status(200).json({
