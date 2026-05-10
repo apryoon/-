@@ -1,0 +1,9 @@
+{
+  "name": "employment-dashboard",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@vercel/kv": "^1.0.1",
+    "papaparse": "^5.4.1"
+  }
+}

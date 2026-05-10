@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학과별 취업현황 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#ffffff;--surface:#f8f9fa;--surface2:#f0f2f5;--border:#dee2e6;
+  --accent:#E6007E;--accent2:#11306E;--accent3:#E6007E;--accent4:#11306E;
+  --text:#212529;--text-muted:#495057;--text-dim:#6c757d;
+  --danger:#dc3545;--radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#1a1d27,#141824);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:600;color:#fff;}
+.header-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+header h1{font-size:16px;font-weight:700;color:#fff;}
+header p{font-size:11px;color:rgba(255,255,255,0.7);margin-top:1px;}
+.header-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.admin-badge{background:rgba(240,160,78,.12);border:1px solid rgba(240,160,78,.35);color:var(--accent4);padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;}
+.file-badge{background:rgba(91,141,238,.1);border:1px solid rgba(91,141,238,.3);color:var(--accent);padding:4px 11px;border-radius:20px;font-size:12px;}
+.icon-btn{background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:4px 11px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.icon-btn:hover{color:var(--text);border-color:var(--text-muted);}
+
+/* TABS */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;}
+.tab-btn{padding:12px 20px;font-size:13px;font-weight:600;font-family:inherit;background:transparent;border:none;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--text);}
+
+/* ── ADMIN LOGIN MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:800;display:flex;align-items:center;justify-content:center;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:32px 36px;width:360px;max-width:90vw;box-shadow:0 16px 48px rgba(0,0,0,.5);}
+.modal h2{font-size:17px;font-weight:700;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--text-muted);margin-bottom:22px;line-height:1.6;}
+.modal-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:9px;font-size:14px;font-family:inherit;outline:none;margin-bottom:10px;letter-spacing:.1em;}
+.modal-input:focus{border-color:var(--accent);}
+.modal-btn-row{display:flex;gap:8px;}
+.modal-btn{flex:1;padding:10px;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;}
+.modal-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+.modal-btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);}
+.modal-btn:hover{opacity:.85;}
+.modal-err{color:var(--danger);font-size:12px;margin-bottom:10px;display:none;}
+
+/* ── ADMIN PANEL ── */
+#admin-panel{display:none;background:var(--surface);border-bottom:1px solid var(--border);}
+.admin-inner{max-width:1200px;margin:0 auto;padding:20px 24px;}
+.admin-title{font-size:13px;font-weight:700;color:var(--accent4);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.admin-grid{grid-template-columns:1fr;}}
+
+.admin-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.admin-card h3{font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:12px;}
+
+/* upload zone (small) */
+.upload-zone-sm{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .25s;background:var(--bg);}
+.upload-zone-sm:hover,.upload-zone-sm.drag{border-color:var(--accent);background:#1e2235;}
+.upload-zone-sm p{font-size:13px;color:var(--text-muted);}
+.uz-icon{font-size:28px;margin-bottom:8px;}
+.uz-btn{margin-top:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+#admin-file-input{display:none;}
+
+/* export panel */
+.export-info{font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:14px;}
+.export-info strong{color:var(--text);}
+.data-summary{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
+.ds-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(46,51,71,.4);}
+.ds-row:last-child{border-bottom:none;}
+.ds-label{color:var(--text-muted);}
+.ds-val{font-family:'DM Mono',monospace;font-weight:600;color:var(--accent);}
+.export-btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--accent3),#2a9d7a);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.export-btn:hover{opacity:.85;}
+.export-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pw-change-row{display:flex;gap:7px;margin-top:10px;}
+.pw-input-sm{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;font-family:inherit;outline:none;}
+.pw-input-sm:focus{border-color:var(--accent);}
+.pw-save-btn{padding:7px 14px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;}
+.pw-save-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* geo panel */
+.geo-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.75;margin-bottom:8px;}
+.geo-box .ok{color:var(--accent3);}
+.geo-box .pend{color:var(--accent4);}
+.geo-btn{width:100%;padding:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.geo-btn:not(:disabled):hover{border-color:var(--accent4);color:var(--accent4);}
+.geo-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* status messages */
+.status-msg{font-size:12px;margin-top:8px;padding:7px 10px;border-radius:7px;display:none;}
+.status-msg.ok{background:rgba(61,191,140,.1);border:1px solid rgba(61,191,140,.3);color:var(--accent3);}
+.status-msg.err{background:rgba(224,92,106,.1);border:1px solid rgba(224,92,106,.3);color:var(--danger);}
+
+/* ── DASHBOARD ── */
+#dashboard{display:none;}
+.page-inner{padding:20px 24px;max-width:1440px;margin:0 auto;}
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;}
+.filter-label{font-size:12px;color:var(--text-muted);font-weight:500;}
+.filter-group{display:flex;align-items:center;gap:7px;}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.checkbox-item{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;background:var(--surface2);cursor:pointer;transition:background .2s;user-select:none;}
+.checkbox-item:hover{background:var(--border);}
+.checkbox-item input[type="checkbox"]{cursor:pointer;accent-color:var(--accent);}
+.checkbox-item label{cursor:pointer;font-size:12px;color:var(--text);}
+.filter-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer;outline:none;transition:border-color .2s;min-width:120px;}
+.filter-select:focus{border-color:var(--accent);}
+.reset-btn{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.reset-btn:hover{border-color:var(--accent);color:var(--accent);}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:13px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:17px 19px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-accent,var(--accent));}
+.stat-card .label{font-size:11px;color:var(--text-muted);font-weight:500;letter-spacing:.5px;text-transform:uppercase;}
+.stat-card .value{font-size:26px;font-weight:700;margin:6px 0 3px;font-family:'DM Mono',monospace;}
+.stat-card .sub{font-size:11px;color:var(--text-dim);}
+.stat-card .icon{position:absolute;right:15px;top:15px;font-size:24px;opacity:.12;}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+@media(max-width:900px){.chart-grid{grid-template-columns:1fr;}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.chart-card h3{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.chart-wrap{position:relative;height:240px;}
+.rank-list{list-style:none;}
+.rank-item{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(46,51,71,.5);}
+.rank-item:last-child{border-bottom:none;}
+.rank-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);width:18px;text-align:center;}
+.rank-name{flex:1;font-size:12px;}
+.rank-bar-wrap{width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.rank-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;}
+.rank-count{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);min-width:26px;text-align:right;}
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;}
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.table-header h3{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;}
+.search-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 11px;border-radius:8px;font-size:13px;font-family:inherit;outline:none;width:190px;transition:border-color .2s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--text-dim);}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{text-align:left;padding:8px 12px;color:var(--text-dim);font-weight:600;font-size:11px;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+.data-table td{padding:9px 12px;border-bottom:1px solid rgba(46,51,71,.5);color:var(--text);}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(--surface2);}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.pagination{display:flex;gap:5px;justify-content:center;margin-top:12px;}
+.page-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);width:29px;height:29px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;transition:all .2s;}
+.page-btn:hover,.page-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.page-btn:disabled{opacity:.3;cursor:not-allowed;}
+.table-footer{margin-top:9px;font-size:12px;color:var(--text-dim);text-align:right;}
+
+/* MAP */
+#map-tab{display:none;}
+.map-outer{display:flex;height:calc(100vh - 112px);overflow:hidden;}
+.map-sidebar{width:272px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:14px 13px;display:flex;flex-direction:column;gap:13px;}
+.map-main{flex:1;position:relative;}
+#osm-map{position:absolute;inset:0;z-index:1;}
+.leaflet-container{background:#1a1d27 !important;}
+.leaflet-tile-pane{/* 밝은 테마 - 필터 없음 */}
+.leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;}
+.leaflet-control-attribution{background:rgba(15,17,23,.7)!important;color:var(--text-dim)!important;font-size:10px!important;}
+.sb-section{display:flex;flex-direction:column;gap:7px;}
+.sb-title{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase;}
+.map-filter-col .filter-select{width:100%;min-width:unset;font-size:12px;}
+.filter-group{margin-bottom:10px;}
+.filter-label{display:block;font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;letter-spacing:0.3px;white-space:nowrap;line-height:1.4;}
+.map-stat-row{display:flex;gap:7px;}
+.mstat{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;}
+.mstat .ml{font-size:10px;color:var(--text-muted);margin-bottom:2px;}
+.mstat .mv{font-size:17px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);}
+/* ── 지역 트리 (시도 > 시군구) ── */
+.region-list{list-style:none;padding:0;margin:0;}
+.ritem-sido{list-style:none;border-bottom:1px solid rgba(46,51,71,.4);}
+.ritem-sido:last-child{border-bottom:none;}
+.sido-row{display:flex;align-items:center;gap:7px;padding:7px 4px;cursor:pointer;border-radius:5px;transition:background .15s;user-select:none;}
+.sido-row:hover{background:var(--surface2);}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rname{flex:1;font-size:12px;font-weight:600;}
+.rbar-wrap{width:50px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.rbar{height:100%;border-radius:2px;}
+.rcount{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);min-width:28px;text-align:right;}
+.sido-arrow{font-size:9px;color:var(--text-dim);transition:transform .2s;flex-shrink:0;}
+.sido-row.open .sido-arrow{transform:rotate(90deg);color:var(--accent);}
+
+/* 시군구 서브리스트 */
+.sigungu-list{list-style:none;display:none;padding:0 0 4px 14px;margin:0;border-left:2px solid rgba(230,0,126,.25);margin-left:8px;}
+.sigungu-list.open{display:block;}
+.ritem-sg{display:flex;align-items:center;gap:7px;padding:5px 4px;cursor:pointer;border-radius:5px;transition:background .15s;}
+.ritem-sg:hover{background:var(--surface2);}
+.sg-bar-wrap{width:36px;height:3px;background:var(--bg);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.sg-bar{height:100%;border-radius:2px;background:rgba(230,0,126,.4);}
+.sg-name{flex:1;font-size:11px;color:var(--text-muted);}
+.sg-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);}
+
+/* ── 범례 클릭 필터 ── */
+.leg-item{display:flex;align-items:center;gap:7px;margin-bottom:6px;cursor:pointer;padding:3px 5px;border-radius:6px;transition:background .15s;border:1px solid transparent;}
+.leg-item:hover{background:rgba(255,255,255,.06);}
+.leg-item.leg-on{opacity:1;}
+.leg-item.leg-off{opacity:.4;}
+.leg-item.leg-off:hover{opacity:.65;}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(255,255,255,.5);transition:all .2s;}
+.leg-label{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;flex:1;transition:color .2s;user-select:none;}
+.leg-cnt{font-size:10px;font-family:'DM Mono',monospace;flex-shrink:0;}
+.leg-size-dot-wrap{width:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ── 업체 검색 ── */
+.co-search-wrap{position:relative;}
+.co-search-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 30px 7px 10px;border-radius:8px;font-size:12px;font-family:inherit;outline:none;transition:border-color .2s;}
+.co-search-input:focus{border-color:var(--accent);}
+.co-search-input::placeholder{color:var(--text-dim);}
+.co-clear-btn{position:absolute;right:7px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;line-height:1;padding:2px;display:none;}
+.co-clear-btn:hover{color:var(--text);}
+.co-results{background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:5px;max-height:220px;overflow-y:auto;display:none;}
+.co-results::-webkit-scrollbar{width:4px;}
+.co-results::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.co-result-item{padding:8px 11px;cursor:pointer;border-bottom:1px solid rgba(46,51,71,.5);transition:background .12s;}
+.co-result-item:last-child{border-bottom:none;}
+.co-result-item:hover{background:var(--surface);}
+.co-result-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.co-result-meta{font-size:10px;color:var(--text-muted);}
+.co-hl{color:var(--accent);font-weight:700;}
+.co-no-result{padding:14px;text-align:center;font-size:12px;color:var(--text-dim);}
+.co-count{font-size:10px;color:var(--text-dim);text-align:right;margin-top:4px;}
+.cm-wrap{display:flex;flex-direction:column;align-items:center;cursor:pointer;}
+.cm-dot{border-radius:50%;border:2.5px solid rgba(255,255,255,.8);box-shadow:0 2px 8px rgba(0,0,0,.5);transition:transform .15s;}
+.cm-wrap:hover .cm-dot{transform:scale(1.4);}
+.cm-name{font-family:'Noto Sans KR',sans-serif;font-size:10px;font-weight:700;color:#ffffff;background:rgba(17,48,110,.92);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:2px 6px;margin-top:3px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:12px!important;box-shadow:0 8px 28px rgba(0,0,0,.55)!important;padding:0!important;}
+.leaflet-popup-content{margin:0!important;padding:14px 16px!important;min-width:180px;max-width:240px;}
+.leaflet-popup-tip-container{display:none;}
+.leaflet-popup-close-button{color:var(--text-dim)!important;font-size:16px!important;top:8px!important;right:10px!important;}
+.leaflet-popup-close-button:hover{color:var(--text)!important;}
+.pop-title{font-weight:700;font-size:13px;margin-bottom:9px;padding-right:16px;line-height:1.4;}
+.pop-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.pop-row:last-child{border-bottom:none;}
+.pk{color:var(--text-muted);}
+.pv{font-weight:600;color:var(--text);text-align:right;max-width:140px;font-size:11px;line-height:1.4;}
+
+/* NO DATA */
+#no-data-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 112px);gap:14px;text-align:center;padding:20px;}
+#no-data-screen .nd-icon{font-size:52px;}
+#no-data-screen h2{font-size:18px;font-weight:700;color:var(--text);}
+#no-data-screen p{font-size:13px;color:var(--text-muted);line-height:1.7;max-width:340px;}
+
+/* LOADING */
+#loading{display:none;position:fixed;inset:0;background:rgba(15,17,23,.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading p{color:var(--text-muted);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p id="loading-msg">처리 중...</p></div>
+
+<!-- 관리자 로그인 모달 -->
+<div class="modal-bg" id="admin-modal" style="display:none">
+  <div class="modal">
+    <h2>🔐 관리자 로그인</h2>
+    <p>관리자 비밀번호를 입력하세요.<br>데이터 업로드 및 배포 파일 생성 기능을 사용할 수 있습니다.</p>
+    <div class="modal-err" id="modal-err">비밀번호가 올바르지 않습니다.</div>
+    <input type="password" class="modal-input" id="pw-input" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')tryLogin()"/>
+    <div class="modal-btn-row">
+      <button type="button" class="modal-btn secondary" onclick="closeAdminModal()">취소</button>
+      <button type="button" class="modal-btn primary" onclick="tryLogin()">로그인</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="header-icon">📊</div>
+  <div>
+    <h1 id="header-title">학과별 취업현황 대시보드</h1>
+    <p id="header-sub">취업 기업 현황 분석</p>
+  </div>
+  <div class="header-right">
+    <span class="admin-badge" id="admin-badge" style="display:none">⚙️ 관리자 모드</span>
+    <span class="file-badge" id="data-date-badge" style="display:none"></span>
+    <!-- 이용자에게는 안 보이는 숨겨진 관리자 버튼 (헤더 아이콘 더블클릭) -->
+    <button type="button" class="icon-btn" id="admin-logout-btn" style="display:none" onclick="logoutAdmin()">로그아웃</button>
+  </div>
+</header>
+
+<!-- ══ 관리자 패널 ══ -->
+<div id="admin-panel">
+  <div class="admin-inner">
+    <div class="admin-title">⚙️ 관리자 — 데이터 관리</div>
+    <div class="admin-grid">
+
+      <!-- Google Sheets 동기화 -->
+      <div class="admin-card">
+        <h3>🔄 Google Sheets 자동 동기화</h3>
+        <div style="background:rgba(91,141,238,.07);border:1px solid rgba(91,141,238,.25);border-radius:8px;padding:12px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:#5b8dee;margin-bottom:6px;">📊 연결된 시트</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.6;word-break:break-all;">
+            ID: <code style="font-size:9px;background:rgba(0,0,0,.15);padding:1px 4px;border-radius:3px;">16zMN9MQTBUnFmENCmyL_6GgLxQo_RFkLwiy_LT7hO7w</code>
+          </div>
+        </div>
+        <button type="button" class="export-btn" id="sync-sheets-btn" onclick="syncGoogleSheets()" style="background:linear-gradient(135deg,#5b8dee,#7c5cbf);margin-bottom:8px;">
+          <span>🔄</span><span>Google Sheets에서 최신 데이터 가져오기</span>
+        </button>
+        <div style="font-size:10px;color:var(--text-dim);padding:8px 12px;background:var(--surface2);border-radius:6px;line-height:1.6;">
+          💡 <strong>사용 방법</strong><br>
+          1. Google Sheets에서 데이터 수정<br>
+          2. 이 버튼 클릭 → 최신 데이터 자동 가져오기<br>
+          3. 위치 검색 → 서버 저장
+        </div>
+        <div class="status-msg" id="upload-status"></div>
+
+        <div style="margin-top:14px">
+          <div class="sb-title" style="margin-bottom:8px">📍 위치 데이터</div>
+          <!-- 카카오 API 자동 연결 안내 -->
+          <div style="margin-bottom:8px;background:rgba(61,191,140,.07);border:1px solid rgba(61,191,140,.25);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:11px;font-weight:700;color:#3dbf8c;margin-bottom:4px;">✓ 카카오 API 자동 연결됨</div>
+            <div style="font-size:10px;color:var(--text-dim);line-height:1.6;">
+              Netlify 서버를 통해 카카오 검색 API에 직접 연결됩니다.<br>
+              API 키 입력 불필요.
+            </div>
+            <input type="hidden" id="kakao-rest-key" value=""/>
+          </div>
+          <div class="geo-box" id="geo-status">Google Sheets에서 데이터를 가져오면 자동 분석됩니다.</div>
+          <button type="button" class="geo-btn" id="geo-btn" onclick="startGeocoding()" disabled style="margin-top:6px">🔍 미확인 업체 위치 검색</button>
+        </div>
+      </div>
+
+      <!-- 데이터 배포 -->
+      <div class="admin-card">
+        <h3>☁️ 데이터 배포</h3>
+        <div class="export-info">
+          <strong style="color:var(--accent3)">서버에 저장</strong>하면 모든 이용자에게<br>
+          <strong>같은 링크</strong>로 즉시 반영됩니다.<br><br>
+          이용자는 항상 최신 데이터를 자동으로 봅니다.
+        </div>
+        <div class="data-summary" id="data-summary">
+          <div class="ds-row"><span class="ds-label">로드된 데이터</span><span class="ds-val" id="ds-total">-</span></div>
+          <div class="ds-row"><span class="ds-label">기업 수</span><span class="ds-val" id="ds-co">-</span></div>
+          <div class="ds-row"><span class="ds-label">학과 수</span><span class="ds-val" id="ds-dept">-</span></div>
+          <div class="ds-row"><span class="ds-label">연도 범위</span><span class="ds-val" id="ds-year">-</span></div>
+          <div class="ds-row"><span class="ds-label">위치 확인</span><span class="ds-val" id="ds-geo">-</span></div>
+        </div>
+        <button type="button" class="export-btn" id="server-save-btn" onclick="saveToServer()" disabled style="margin-bottom:8px">
+          <span>☁️</span><span>서버에 저장 (모든 이용자에게 즉시 반영)</span>
+        </button>
+        <button type="button" class="export-btn" onclick="clearGeoCache()" style="background:linear-gradient(135deg,#f0a04e,#d88a3a);margin-bottom:8px;font-size:12px;">
+          <span>🔄</span><span>위치 캐시 초기화 (지역 계층 구조 수정용)</span>
+        </button>
+        <button type="button" class="export-btn" id="export-btn" onclick="exportViewerFile()" disabled style="background:linear-gradient(135deg,#5b8dee,#7c5cbf);font-size:11px;padding:8px;">
+          <span>💾</span><span>HTML 파일 다운로드 (백업용)</span>
+        </button>
+        <div class="status-msg" id="export-status"></div>
+        
+        <div style="font-size:11px;color:var(--text-muted);margin-top:12px;padding:10px;background:var(--surface2);border-radius:8px;line-height:1.6;">
+          💡 <strong>캐시 초기화 후:</strong><br>
+          "위치 검색" 다시 실행 → 지역별 현황이 계층 구조로 표시됨
+        </div>
+
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="sb-title" style="margin-bottom:8px">🔑 클라이언트 비밀번호 변경</div>
+          <div class="pw-change-row">
+            <input type="password" class="pw-input-sm" id="new-pw" placeholder="새 비밀번호 입력"/>
+            <button type="button" class="pw-save-btn" onclick="changePassword()">변경</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:5px;line-height:1.5;">
+            ⚠️ 서버 비밀번호는 Netlify 환경변수<br>
+            <code style="font-size:10px;color:var(--accent4)">ADMIN_PASSWORD</code>에서 변경하세요
+          </div>
+          <div class="status-msg" id="pw-status"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ 탭 바 (데이터 있을 때만 표시) ══ -->
+<div class="tab-bar" id="tab-bar" style="display:none">
+  <button class="tab-btn active" onclick="switchTab('chart')">📊 차트 분석</button>
+  <button class="tab-btn" onclick="switchTab('map')">🗺️ 지도 분포</button>
+</div>
+
+<!-- ══ 데이터 없음 안내 ══ -->
+<div id="no-data-screen">
+  <div class="nd-icon">📭</div>
+  <h2>표시할 데이터가 없습니다</h2>
+  <p>관리자가 아직 데이터를 업로드하지 않았습니다.<br>관리자에게 문의해 주세요.</p>
+  <div style="margin-top:16px;font-size:12px;color:var(--text-dim)">
+    관리자라면 헤더 아이콘을 <b>더블클릭</b>하여 로그인하세요.
+  </div>
+</div>
+
+<!-- ══ 차트 탭 ══ -->
+<div id="chart-tab" style="display:none">
+  <div class="page-inner">
+    <div class="filter-bar">
+      <span class="filter-label">필터</span>
+      <div class="filter-group"><label class="filter-label">연도</label>
+        <div class="checkbox-group" id="filter-year-checks"></div></div>
+      <div class="filter-group"><label class="filter-label">학과</label>
+        <select class="filter-select" id="filter-dept" onchange="applyFilters()"><option value="">전체</option></select></div>
+      <div class="filter-group"><label class="filter-label">기업유형</label>
+        <select class="filter-select" id="filter-type" onchange="applyFilters()"><option value="">전체</option></select></div>
+      <button class="reset-btn" onclick="resetFilters()">↺ 초기화</button>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card" style="--card-accent:var(--accent)"><div class="icon">👥</div><div class="label">총 취업인원</div><div class="value" id="stat-total">0</div><div class="sub">명</div></div>
+      <div class="stat-card" style="--card-accent:var(--accent3)"><div class="icon">🏢</div><div class="label">취업 기업 수</div><div class="value" id="stat-companies">0</div><div class="sub">개 기업</div></div>
+      <div class="stat-card" style="--card-accent:var(--accent2)"><div class="icon">🎓</div><div class="label">참여 학과 수</div><div class="value" id="stat-depts">0</div><div class="sub">개 학과</div></div>
+      <div class="stat-card" style="--card-accent:var(--accent4)"><div class="icon">📅</div><div class="label">데이터 기간</div><div class="value" id="stat-years" style="font-size:17px;padding-top:5px">-</div><div class="sub" id="stat-years-sub"></div></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card"><h3><span>🎓</span>학과별 취업인원</h3><div class="chart-wrap"><canvas id="chart-dept"></canvas></div></div>
+      <div class="chart-card">
+        <h3>
+          <span>🏷️</span>기업유형별 분포
+          <button onclick="showLocationUnconfirmed()" style="margin-left:auto;padding:4px 10px;font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--text);">위치 미파악 업체 보기</button>
+        </h3>
+        <div class="chart-wrap"><canvas id="chart-type"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card"><h3><span>📈</span>연도별 취업 추이</h3><div class="chart-wrap"><canvas id="chart-trend"></canvas></div></div>
+      <div class="chart-card"><h3><span>🏆</span>취업인원 상위 기업</h3><ul class="rank-list" id="top-companies"></ul></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header">
+        <h3>📋 상세 데이터</h3>
+        <input type="text" class="search-input" id="table-search" placeholder="기업명, 학과 검색..." oninput="renderTable()">
+      </div>
+      <div style="overflow-x:auto"><table class="data-table"><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+        <select id="items-per-page" onchange="changeItemsPerPage()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:12px;font-family:inherit;cursor:pointer;">
+          <option value="10">10개씩 보기</option>
+          <option value="20" selected>20개씩 보기</option>
+          <option value="30">30개씩 보기</option>
+          <option value="50">50개씩 보기</option>
+          <option value="100">100개씩 보기</option>
+        </select>
+        <div class="pagination" id="pagination"></div>
+      </div>
+      <div class="table-footer" id="table-footer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 지도 탭 ══ -->
+<div id="map-tab">
+  <div class="map-outer">
+
+<!-- ══ 위치 미파악 업체 모달 ══ -->
+<div id="unconfirmed-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--bg);border-radius:12px;padding:24px;max-width:700px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;font-size:18px;color:var(--text);">📍 위치 미파악 업체 목록</h3>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="downloadUnconfirmedList()" style="padding:6px 12px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
+          📥 엑셀 다운로드
+        </button>
+        <button onclick="document.getElementById('unconfirmed-modal').style.display='none'" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted);">×</button>
+      </div>
+    </div>
+    <div id="unconfirmed-list" style="font-size:13px;line-height:1.8;color:var(--text);"></div>
+  </div>
+</div>
+    <div class="map-sidebar">
+      <!-- 업체명 검색 -->
+      <div class="sb-section">
+        <div class="sb-title">🔎 업체명 검색</div>
+        <div class="co-search-wrap">
+          <input type="text" class="co-search-input" id="co-search"
+            placeholder="업체명 입력..." oninput="onCoSearch(this.value)" autocomplete="off"/>
+          <button type="button" class="co-clear-btn" id="co-clear-btn" onclick="clearCoSearch()">✕</button>
+        </div>
+        <div class="co-count" id="co-count"></div>
+        <div class="co-results" id="co-results"></div>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-title">🔍 지도 필터</div>
+        <div class="map-filter-col">
+          <div class="filter-group">
+            <label class="filter-label">연도</label>
+            <select class="filter-select" id="mf-year" onchange="renderMarkers()"><option value="">전체</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">학과</label>
+            <select class="filter-select" id="mf-dept" onchange="renderMarkers()"><option value="">전체</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">기업<br>유형</label>
+            <select class="filter-select" id="mf-type" onchange="renderMarkers()"><option value="">전체</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-title">📊 지도 현황</div>
+        <div class="map-stat-row">
+          <div class="mstat"><div class="ml">표시 기업</div><div class="mv" id="mstat-co">0</div></div>
+          <div class="mstat"><div class="ml">총 인원</div><div class="mv" id="mstat-cnt">0</div></div>
+        </div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-title">🗾 지역별 현황</div>
+        <ul class="region-list" id="region-list"></ul>
+      </div>
+    </div>
+    <div class="map-main">
+      <div id="osm-map"></div>
+      <!-- 동적 범례 (renderMarkers에서 갱신) -->
+      <div id="map-legend" style="position:absolute;bottom:24px;right:10px;z-index:400;background:rgba(26,29,39,.93);border:1px solid var(--border);border-radius:11px;padding:12px 14px;pointer-events:none;min-width:130px;max-width:180px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// 내장 데이터 (관리자가 배포 파일 생성 시 여기에 주입됨)
+// ══════════════════════════════════════
+const EMBEDDED_DATA = null; // ← 배포 파일에서는 JSON 데이터로 교체됨
+const EMBEDDED_DATE = null;
+const ADMIN_PW_HASH = 'admin1234'; // 기본 비밀번호 (배포 후 변경 권장)
+
+// ══════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════
+const TC=['#E6007E','#11306E','#7C3AED','#EC4899','#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4'];
+
+const RC={
+  '서울':[37.5665,126.9780],'서울특별시':[37.5665,126.9780],
+  '서울 종로구':[37.5730,126.9794],'서울 중구':[37.5638,126.9976],
+  '서울 용산구':[37.5384,126.9654],'서울 성동구':[37.5637,127.0367],
+  '서울 광진구':[37.5386,127.0824],'서울 동대문구':[37.5744,127.0396],
+  '서울 중랑구':[37.6065,127.0927],'서울 성북구':[37.5894,127.0167],
+  '서울 강북구':[37.6396,127.0257],'서울 도봉구':[37.6688,127.0472],
+  '서울 노원구':[37.6544,127.0568],'서울 은평구':[37.6177,126.9227],
+  '서울 서대문구':[37.5791,126.9368],'서울 마포구':[37.5663,126.9014],
+  '서울 양천구':[37.5170,126.8665],'서울 강서구':[37.5509,126.8495],
+  '서울 구로구':[37.4954,126.8875],'서울 금천구':[37.4600,126.9001],
+  '서울 영등포구':[37.5264,126.8962],'서울 동작구':[37.5124,126.9393],
+  '서울 관악구':[37.4784,126.9516],'서울 서초구':[37.4837,127.0324],
+  '서울 강남구':[37.5172,127.0473],'서울 송파구':[37.5145,127.1059],
+  '서울 강동구':[37.5301,127.1238],
+  '부산':[35.1796,129.0756],'부산광역시':[35.1796,129.0756],
+  '부산 중구':[35.1063,129.0325],'부산 동구':[35.1359,129.0593],
+  '부산 서구':[35.0973,129.0243],'부산 영도구':[35.0912,129.0683],
+  '부산 부산진구':[35.1631,129.0531],'부산 동래구':[35.1951,129.0836],
+  '부산 남구':[35.1365,129.0839],'부산 북구':[35.1972,128.9897],
+  '부산 해운대구':[35.1631,129.1635],
+  '인천':[37.4563,126.7052],'인천광역시':[37.4563,126.7052],
+  '인천 중구':[37.4735,126.6217],'인천 동구':[37.4740,126.6432],
+  '인천 남구':[37.4480,126.7052],'인천 연수구':[37.4103,126.6787],
+  '인천 남동구':[37.4468,126.7313],'인천 부평구':[37.5075,126.7221],
+  '인천 계양구':[37.5374,126.7376],'인천 서구':[37.5450,126.6759],
+  '인천 강화군':[37.7467,126.4876],
+  '대구':[35.8714,128.6014],'대구광역시':[35.8714,128.6014],
+  '대구 중구':[35.8692,128.6062],'대구 동구':[35.8865,128.6353],
+  '대구 서구':[35.8716,128.5591],'대구 남구':[35.8462,128.5988],
+  '대구 북구':[35.8851,128.5827],'대구 수성구':[35.8580,128.6308],
+  '대구 달서구':[35.8297,128.5327],'대구 달성군':[35.7747,128.4318],
+  '대전':[36.3504,127.3845],'대전광역시':[36.3504,127.3845],
+  '대전 동구':[36.3122,127.4543],'대전 중구':[36.3252,127.4210],
+  '대전 서구':[36.3549,127.3832],'대전 유성구':[36.3625,127.3563],
+  '대전 대덕구':[36.3465,127.4152],
+  '광주':[35.1595,126.8526],'광주광역시':[35.1595,126.8526],
+  '광주 동구':[35.1464,126.9227],'광주 서구':[35.1525,126.8890],
+  '광주 남구':[35.1334,126.9015],'광주 북구':[35.1745,126.9119],
+  '광주 광산구':[35.1396,126.7936],
+  '울산':[35.5384,129.3114],'울산광역시':[35.5384,129.3114],
+  '울산 남구':[35.5354,129.3318],'울산 북구':[35.5828,129.3607],
+  '울산 중구':[35.5699,129.3320],'울산 동구':[35.5055,129.4162],
+  '울산 울주군':[35.5227,129.1570],
+  '세종':[36.4800,127.2890],
+  '경기':[37.4138,127.5183],'경기도':[37.4138,127.5183],
+  '경기 수원시':[37.2636,127.0286],'경기 성남시':[37.4449,127.1388],
+  '경기 고양시':[37.6584,126.8320],'경기 용인시':[37.2410,127.1775],
+  '경기 화성시':[37.1994,126.8310],'경기 안산시':[37.3219,126.8309],
+  '경기 안양시':[37.3943,126.9568],'경기 남양주시':[37.6360,127.2165],
+  '경기 부천시':[37.5035,126.7660],'경기 의정부시':[37.7382,127.0337],
+  '경기 파주시':[37.7596,126.7799],'경기 평택시':[36.9921,127.1128],
+  '경기 시흥시':[37.3800,126.8027],'경기 김포시':[37.6153,126.7156],
+  '경기 하남시':[37.5392,127.2148],
+  '강원':[37.8228,128.1555],'강원도':[37.8228,128.1555],
+  '강원 춘천시':[37.8813,127.7298],'강원 원주시':[37.3422,127.9202],
+  '강원 강릉시':[37.7519,128.8761],'강원 속초시':[38.2048,128.5912],
+  '충북':[36.6357,127.4912],'충청북도':[36.6357,127.4912],
+  '충북 청주시':[36.6424,127.4890],'충북 충주시':[36.9910,127.9260],
+  '충남':[36.5184,126.8000],'충청남도':[36.5184,126.8000],
+  '충남 천안시':[36.8151,127.1139],'충남 아산시':[36.7898,127.0040],
+  '충남 서산시':[36.7845,126.4503],'충남 당진시':[36.8934,126.6450],
+  '전북':[35.7175,127.1530],'전라북도':[35.7175,127.1530],
+  '전북 전주시':[35.8242,127.1479],'전북 군산시':[35.9677,126.7368],
+  '전북 익산시':[35.9483,126.9577],
+  '전남':[34.8161,126.4630],'전라남도':[34.8161,126.4630],
+  '전남 목포시':[34.8118,126.3922],'전남 순천시':[34.9508,127.4872],
+  '전남 여수시':[34.7604,127.6622],
+  '경북':[36.4919,128.8889],'경상북도':[36.4919,128.8889],
+  '경북 포항시':[36.0190,129.3435],'경북 경주시':[35.8562,129.2247],
+  '경북 안동시':[36.5684,128.7294],'경북 구미시':[36.1196,128.3440],
+  '경남':[35.4606,128.2132],'경상남도':[35.4606,128.2132],
+  '경남 창원시':[35.2280,128.6811],'경남 진주시':[35.1800,128.1076],
+  '경남 거제시':[34.8800,128.6211],'경남 김해시':[35.2281,128.8892],
+  '경남 밀양시':[35.5038,128.7463],'경남 양산시':[35.3350,129.0377],
+  '제주':[33.4996,126.5312],'제주도':[33.4996,126.5312],
+  // 단독 시군구명도 유지 (지역 컬럼에 그냥 도시명만 적은 경우)
+  '수원':[37.2636,127.0286],'성남':[37.4449,127.1388],'고양':[37.6584,126.8320],
+  '용인':[37.2410,127.1775],'창원':[35.2280,128.6811],'청주':[36.6424,127.4890],
+  '전주':[35.8242,127.1479],'천안':[36.8151,127.1139],'안산':[37.3219,126.8309],
+  '안양':[37.3943,126.9568],'남양주':[37.6360,127.2165],'화성':[37.1994,126.8310],
+  '포항':[36.0190,129.3435],'구미':[36.1196,128.3440],'원주':[37.3422,127.9202],
+  '춘천':[37.8813,127.7298],'목포':[34.8118,126.3922],'여수':[34.7604,127.6622],
+  '순천':[34.9508,127.4872],'진주':[35.1800,128.1076],'거제':[34.8800,128.6211],
+  '김해':[35.2281,128.8892],'의정부':[37.7382,127.0337],'부천':[37.5035,126.7660],
+  '파주':[37.7596,126.7799],'평택':[36.9921,127.1128],'시흥':[37.3800,126.8027],
+  '안동':[36.5684,128.7294],'경주':[35.8562,129.2247],'강릉':[37.7519,128.8761],
+  '속초':[38.2048,128.5912],'군산':[35.9677,126.7368],'익산':[35.9483,126.9577],
+  '아산':[36.7898,127.0040],'서산':[36.7845,126.4503],'김포':[37.6153,126.7156],
+  '하남':[37.5392,127.2148],'당진':[36.8934,126.6450],'밀양':[35.5038,128.7463],
+  '양산':[35.3350,129.0377],
+};
+
+const BIZ={
+  // 서울 (101~128) — 구 단위
+  101:'서울 종로구', 102:'서울 중구',   103:'서울 용산구', 104:'서울 성동구',
+  105:'서울 광진구', 106:'서울 동대문구',107:'서울 중랑구', 108:'서울 성북구',
+  109:'서울 강북구', 110:'서울 도봉구', 111:'서울 노원구', 112:'서울 은평구',
+  113:'서울 서대문구',114:'서울 마포구',115:'서울 양천구', 116:'서울 강서구',
+  117:'서울 구로구', 118:'서울 금천구', 119:'서울 영등포구',120:'서울 동작구',
+  121:'서울 관악구', 122:'서울 서초구', 123:'서울 강남구', 124:'서울 송파구',
+  125:'서울 강동구', 126:'서울 강남구', 127:'서울 서초구', 128:'서울 영등포구',
+  // 경기 (130~149)
+  130:'경기 수원시', 131:'경기 안양시', 132:'경기 안산시', 133:'경기 성남시',
+  134:'경기 부천시', 135:'경기 의정부시',136:'경기 고양시',137:'경기 파주시',
+  138:'경기 평택시', 139:'경기 용인시', 140:'경기 화성시', 141:'경기',
+  142:'경기 남양주시',143:'경기',       144:'경기',       145:'경기 김포시',
+  146:'경기',       147:'경기',        148:'경기 시흥시', 149:'경기 하남시',
+  // 부산 (201~209) — 구 단위
+  201:'부산 중구',  202:'부산 동구',  203:'부산 서구',  204:'부산 영도구',
+  205:'부산 부산진구',206:'부산 동래구',207:'부산 남구', 208:'부산 북구',
+  209:'부산 해운대구',
+  // 경남 (210~219)
+  210:'경남 창원시', 211:'경남 창원시', 212:'경남 진주시', 213:'경남',
+  214:'경남 거제시', 215:'경남 김해시', 216:'경남 밀양시', 217:'경남',
+  218:'경남',       219:'경남',
+  // 강원 (220~229)
+  220:'강원 강릉시', 221:'강원 원주시', 222:'강원 춘천시', 223:'강원',
+  224:'강원 속초시', 225:'강원',       226:'강원',       227:'강원',
+  228:'강원',       229:'강원',
+  // 대구 (301~309) — 구 단위
+  301:'대구 중구',  302:'대구 동구',  303:'대구 서구',  304:'대구 남구',
+  305:'대구 북구',  306:'대구 수성구',307:'대구 달서구', 308:'대구 달성군',
+  309:'대구',
+  // 경북 (310~319)
+  310:'경북 포항시', 311:'경북 경주시', 312:'경북 안동시', 313:'경북 구미시',
+  314:'경북',       315:'경북',       316:'경북',       317:'경북',
+  318:'경북',       319:'경북',
+  // 인천 (401~409) — 구 단위
+  401:'인천 중구',  402:'인천 동구',  403:'인천 남구',  404:'인천 연수구',
+  405:'인천 남동구',406:'인천 부평구',407:'인천 계양구', 408:'인천 서구',
+  409:'인천 강화군',
+  // 광주 (501~509) — 구 단위
+  501:'광주 동구',  502:'광주 서구',  503:'광주 남구',  504:'광주 북구',
+  505:'광주 광산구',506:'광주',       507:'광주',       508:'광주',
+  509:'광주',
+  // 전남 (510~519)
+  510:'전남 목포시', 511:'전남 순천시', 512:'전남 여수시', 513:'전남',
+  514:'전남',       515:'전남',       516:'전남',       517:'전남',
+  518:'전남',       519:'전남',
+  // 전북 (520~529)
+  520:'전북 전주시', 521:'전북 전주시', 522:'전북 군산시', 523:'전북 익산시',
+  524:'전북',       525:'전북',       526:'전북',       527:'전북',
+  528:'전북',       529:'전북',
+  // 대전 (601~609) — 구 단위
+  601:'대전 동구',  602:'대전 중구',  603:'대전 서구',  604:'대전 유성구',
+  605:'대전 대덕구',606:'대전',       607:'대전',       608:'대전',
+  609:'대전',
+  // 충남 (610~619)
+  610:'충남 천안시', 611:'충남',       612:'충남 아산시', 613:'충남 서산시',
+  614:'충남',       615:'충남',       616:'충남 당진시', 617:'충남',
+  618:'충남',       619:'충남',
+  // 충북·울산 (620~629)
+  620:'충북 청주시', 621:'울산 남구',  622:'울산 북구',  623:'충북 충주시',
+  624:'충북',       625:'충북',       626:'충북',       627:'충북',
+  628:'충북',       629:'충북',
+  631:'세종',
+};
+
+const COL_S={
+  year:   ['연도','년도','year','기준연도','졸업연도'],
+  dept:   ['학과명','학과','전공','department','계열','학부'],
+  company:['기업명','회사명','기업','회사','company','업체명','업체'],
+  bizno:  ['사업자번호','사업자','사업자등록번호','사업자 번호'],
+  type:   ['기업유형','유형','기업구분','회사유형','구분','기업규모'],
+  count:  ['취업인원','인원','인원수','취업자수','count','취업자'],
+  region: ['지역','소재지','location','지역명','시도'],
+  address:['주소','수정주소','정확한주소','상세주소','address','지정주소'],
+};
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let allData=[], filteredData=[];
+let charts={};
+let curPage=1; const PS=15; let itemsPerPage=20;
+let cmap={};
+let geoCache={};
+let leafMap=null, leafMarkers=[];
+let isAdmin=false;
+let adminPw=ADMIN_PW_HASH;
+
+// 범례 필터 상태 (null = 전체, Set = 선택된 항목들)
+let legendTypeFilter=null;   // 선택된 기업유형 Set or null
+let legendSizeFilter=null;   // 선택된 인원 구간 key Set or null
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+window.addEventListener('load',async ()=>{
+  // 헤더 아이콘 더블클릭 → 관리자 로그인 모달
+  document.querySelector('.header-icon').addEventListener('dblclick',()=>{
+    if(!isAdmin)openAdminModal();
+  });
+
+  if(EMBEDDED_DATA){
+    // 배포 파일: 내장 데이터 바로 로드
+    loadEmbeddedData(EMBEDDED_DATA, EMBEDDED_DATE);
+    return;
+  }
+
+  // 서버에서 데이터 로드 시도
+  showLoading(true,'서버에서 데이터 불러오는 중...');
+  try{
+    const res=await fetch('/api/load-data',{cache:'no-cache'});
+    if(res.ok){
+      const json=await res.json();
+      if(json.data&&Array.isArray(json.data)&&json.data.length>0){
+        const dateStr=json.updatedAt
+          ? new Date(json.updatedAt).toLocaleDateString('ko-KR')+' '+new Date(json.updatedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+          : '서버 데이터';
+        showLoading(false);
+        loadEmbeddedData(json.data, dateStr);
+        return;
+      }
+    }
+  }catch(e){
+    console.warn('서버 데이터 로드 실패:',e);
+  }
+  showLoading(false);
+  // 데이터 없음 안내
+  document.getElementById('no-data-screen').style.display='flex';
+});
+
+// ══════════════════════════════════════
+// ADMIN AUTH
+// ══════════════════════════════════════
+function openAdminModal(){
+  document.getElementById('admin-modal').style.display='flex';
+  document.getElementById('pw-input').value='';
+  document.getElementById('modal-err').style.display='none';
+  setTimeout(()=>document.getElementById('pw-input').focus(),100);
+}
+function closeAdminModal(){document.getElementById('admin-modal').style.display='none';}
+function tryLogin(){
+  const pw=document.getElementById('pw-input').value;
+  if(pw===adminPw){
+    isAdmin=true;
+    closeAdminModal();
+    document.getElementById('admin-badge').style.display='inline-flex';
+    document.getElementById('admin-logout-btn').style.display='inline-flex';
+    document.getElementById('admin-panel').style.display='block';
+    // 데이터 없음 화면 숨기고 관리자 패널만 표시
+    if(!allData.length){
+      document.getElementById('no-data-screen').style.display='none';
+    }
+  } else {
+    document.getElementById('modal-err').style.display='block';
+    document.getElementById('pw-input').select();
+  }
+}
+function logoutAdmin(){
+  isAdmin=false;
+  document.getElementById('admin-badge').style.display='none';
+  document.getElementById('admin-logout-btn').style.display='none';
+  document.getElementById('admin-panel').style.display='none';
+  if(!allData.length) document.getElementById('no-data-screen').style.display='flex';
+}
+function changePassword(){
+  const newPw=document.getElementById('new-pw').value.trim();
+  const statusEl=document.getElementById('pw-status');
+  if(!newPw){showStatus(statusEl,'비밀번호를 입력하세요.','err');return;}
+  adminPw=newPw;
+  document.getElementById('new-pw').value='';
+  showStatus(statusEl,'✓ 비밀번호가 변경되었습니다. 배포 파일 생성 시 반영됩니다.','ok');
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+const jitter=r=>(Math.random()-.5)*r;
+function showLoading(v,m='처리 중...'){document.getElementById('loading').style.display=v?'flex':'none';document.getElementById('loading-msg').textContent=m;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showStatus(el,msg,type){el.textContent=msg;el.className='status-msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',4000);}
+function resolveRegion(s){
+  if(!s)return null; s=s.trim();
+  // 정확히 일치하는 키 찾기
+  if(RC[s])return {coords:RC[s], name:s};
+  // 부분 일치하는 키 찾기
+  for(const[k,v]of Object.entries(RC)){
+    if(s.startsWith(k)||s.includes(k)||k.includes(s)){
+      return {coords:v, name:k}; // 매칭된 키 이름도 반환
+    }
+  }
+  return null;
+}
+// 지역 문자열에서 시도 축약 + 시군구 정규화
+// 예: "경기도 수원시 영통구" → "경기 수원시 영통구"
+function normalizeSigungu(s){
+  if(!s)return s;
+  return s.trim()
+    .replace(/서울특별시/g,'서울').replace(/부산광역시/g,'부산')
+    .replace(/대구광역시/g,'대구').replace(/인천광역시/g,'인천')
+    .replace(/광주광역시/g,'광주').replace(/대전광역시/g,'대전')
+    .replace(/울산광역시/g,'울산').replace(/세종특별자치시/g,'세종')
+    .replace(/경기도/g,'경기').replace(/강원특별자치도/g,'강원').replace(/강원도/g,'강원')
+    .replace(/충청북도/g,'충북').replace(/충청남도/g,'충남')
+    .replace(/전라북도/g,'전북').replace(/전북특별자치도/g,'전북').replace(/전라남도/g,'전남')
+    .replace(/경상북도/g,'경북').replace(/경상남도/g,'경남')
+    .replace(/제주특별자치도/g,'제주').replace(/제주도/g,'제주')
+    .replace(/\s+/g,' ').trim();
+}
+function bizToCity(b){
+  if(!b)return null;
+  const d=b.replace(/\D/g,'');
+  if(d.length<3)return null;
+  return BIZ[+d.slice(0,3)]||null;
+}
+function normKey(k){return k.trim().toLowerCase().replace(/[\s\-\/()（）]/g,'');}
+function detectCols(keys){
+  const m={};
+  for(const[f,syns]of Object.entries(COL_S))
+    for(const k of keys)
+      if(syns.some(s=>normKey(k)===normKey(s)||normKey(k).includes(normKey(s))||normKey(s).includes(normKey(k))))
+        if(!m[f])m[f]=k;
+  return m;
+}
+function populateSel(id,vals){
+  const s=document.getElementById(id),cur=s.value;
+  s.innerHTML='<option value="">전체</option>';
+  vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});
+  if(cur)s.value=cur;
+}
+
+// ══════════════════════════════════════
+// GOOGLE SHEETS SYNC
+// ══════════════════════════════════════
+async function syncGoogleSheets(){
+  const btn=document.getElementById('sync-sheets-btn');
+  const originalHtml=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='<span>⏳</span><span>Google Sheets에서 데이터 가져오는 중...</span>';
+  showLoading(true,'Google Sheets 데이터 불러오는 중...');
+
+  try{
+    // 1. Google Sheets 데이터 가져오기
+    const res=await fetch('/api/fetch-sheets',{cache:'no-cache'});
+    const json=await res.json();
+
+    if(!res.ok||!json.success){
+      throw new Error(json.error||'데이터 가져오기 실패');
+    }
+
+    if(!json.data||json.data.length===0){
+      throw new Error('Google Sheets에 데이터가 없습니다.');
+    }
+
+    // 2. 저장된 위치 캐시 불러오기
+    btn.innerHTML='<span>⏳</span><span>저장된 위치 정보 불러오는 중...</span>';
+    const cacheRes=await fetch('/api/load-geocache',{cache:'no-cache'});
+    const cacheJson=await cacheRes.json();
+    const persistentCache=cacheJson.cache||{};
+
+    // 3. 데이터 처리
+    processData(json.data, 'Google Sheets');
+
+    // 4. 캐시된 위치 자동 적용
+    btn.innerHTML='<span>⏳</span><span>저장된 위치 복원 중...</span>';
+    let cachedCount=0;
+    allData.forEach(d=>{
+      if(d.lat) return; // 이미 지역컬럼으로 위치 있으면 패스
+      const cacheKey=d.company.toLowerCase().trim();
+      if(persistentCache[cacheKey]){
+        const cached=persistentCache[cacheKey];
+        d.lat=cached.lat;
+        d.lng=cached.lng;
+        d.geoSrc=cached.geoSrc;
+        d.resolvedRegion=cached.resolvedRegion;
+        cachedCount++;
+      }
+    });
+
+    showLoading(false);
+    const newCount=allData.filter(d=>!d.lat).length;
+    showStatus(
+      document.getElementById('upload-status'),
+      `✓ ${json.rowCount}개 행 로드 완료 | 캐시 복원: ${cachedCount}개 | 검색 필요: ${newCount}개`,
+      'ok'
+    );
+  }catch(err){
+    showLoading(false);
+    showStatus(
+      document.getElementById('upload-status'),
+      '❌ '+err.message,
+      'err'
+    );
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML=originalHtml;
+  }
+}
+
+function processData(json, filename){
+  const keys=Object.keys(json[0]);
+  cmap=detectCols(keys);
+  if(!cmap.dept||!cmap.company){
+    showLoading(false);
+    showStatus(document.getElementById('upload-status'),'학과명/기업명 컬럼 미감지: '+keys.join(', '),'err');
+    return;
+  }
+  allData=json.map(row=>({
+    year:    String(row[cmap.year]   ||'연도미상').trim(),
+    dept:    String(row[cmap.dept]   ||'').trim(),
+    company: String(row[cmap.company]||'').trim(),
+    bizno:   cmap.bizno  ?String(row[cmap.bizno]  ||'').trim():'',
+    type:    cmap.type   ?String(row[cmap.type]   ||'미분류').trim():'미분류',
+    count:   cmap.count  ?(parseInt(row[cmap.count])||1):1,
+    region:  cmap.region ?String(row[cmap.region] ||'').trim():'',
+    address: cmap.address?String(row[cmap.address]||'').trim():'',
+    lat:null,lng:null,geoSrc:null,resolvedRegion:'',
+  })).filter(r=>r.dept&&r.company);
+
+  if(!allData.length){showLoading(false);showStatus(document.getElementById('upload-status'),'유효한 데이터 없음','err');return;}
+
+  // ① 지역컬럼만 사용 — 시도 축약 + 시군구 정규화
+  // (사업자번호 기반 위치 추정은 부정확하므로 제외)
+  allData.forEach(d=>{
+    if(!d.region)return;
+    const result=resolveRegion(d.region);
+    if(result){
+      d.lat=result.coords[0]+jitter(.04);
+      d.lng=result.coords[1]+jitter(.04);
+      d.geoSrc='region';
+      d.resolvedRegion=normalizeSigungu(result.name); // 매칭된 키 사용
+    }
+  });
+
+  showLoading(false);
+  showStatus(document.getElementById('upload-status'),`✓ ${allData.length}개 행 로드 완료 (${filename})`,'ok');
+  initDashboard(new Date().toLocaleDateString('ko-KR'));
+}
+
+function loadEmbeddedData(data, dateStr){
+  allData=data;
+  initDashboard(dateStr);
+}
+
+function initDashboard(dateStr){
+  const years=[...new Set(allData.map(d=>d.year))].sort();
+  const depts=[...new Set(allData.map(d=>d.dept))].sort();
+  const types=[...new Set(allData.map(d=>d.type))].filter(t=>t&&t!=='미분류').sort();
+  const tOpts=[...types,types.length?'미분류':''].filter(Boolean);
+  
+  // 연도 체크박스 생성
+  document.getElementById('filter-year-checks').innerHTML=years.map(y=>`
+    <div class="checkbox-item">
+      <input type="checkbox" id="year-${y}" value="${y}" checked onchange="applyFilters()">
+      <label for="year-${y}">${y}</label>
+    </div>
+  `).join('');
+  
+  populateSel('mf-year',years);
+  ['filter-dept','mf-dept'].forEach(id=>populateSel(id,depts));
+  ['filter-type','mf-type'].forEach(id=>populateSel(id,tOpts));
+
+  filteredData=[...allData];
+  document.getElementById('no-data-screen').style.display='none';
+  document.getElementById('tab-bar').style.display='flex';
+  document.getElementById('chart-tab').style.display='block';
+  document.getElementById('map-tab').style.display='none';
+
+  if(dateStr){
+    const badge=document.getElementById('data-date-badge');
+    badge.textContent='📅 '+dateStr+' 기준';
+    badge.style.display='inline-flex';
+  }
+
+  updateGeoStatus();
+  updateDashboard();
+  updateDataSummary();
+  document.getElementById('export-btn').disabled=false;
+  const ssBtn=document.getElementById('server-save-btn');
+  if(ssBtn)ssBtn.disabled=false;
+}
+
+// ══════════════════════════════════════
+// ADMIN: DATA SUMMARY & EXPORT
+// ══════════════════════════════════════
+function updateDataSummary(){
+  if(!allData.length)return;
+  const years=[...new Set(allData.map(d=>d.year))].filter(y=>y!=='연도미상').sort();
+  document.getElementById('ds-total').textContent=allData.length+'행';
+  document.getElementById('ds-co').textContent=new Set(allData.map(d=>d.company)).size+'개';
+  document.getElementById('ds-dept').textContent=new Set(allData.map(d=>d.dept)).size+'개';
+  document.getElementById('ds-year').textContent=years.length>1?years[0]+'~'+years[years.length-1]:years[0]||'-';
+  const geo=allData.filter(d=>d.lat).length;
+  document.getElementById('ds-geo').textContent=geo+'/'+ allData.length+'개';
+}
+
+// ── 서버에 데이터 저장 (모든 이용자에게 즉시 반영) ──
+async function saveToServer(){
+  if(!allData.length){
+    showStatus(document.getElementById('export-status'),'저장할 데이터가 없습니다.','err');
+    return;
+  }
+  const btn=document.getElementById('server-save-btn');
+  const originalHtml=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='<span>⏳</span><span>서버 저장 중...</span>';
+
+  try{
+    const res=await fetch('/api/save-data',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:adminPw, data:allData}),
+    });
+    const json=await res.json();
+
+    if(res.ok&&json.success){
+      const tStr=new Date(json.updatedAt).toLocaleString('ko-KR');
+      showStatus(
+        document.getElementById('export-status'),
+        `✓ 서버에 저장 완료 (${json.rowCount}건). 모든 이용자에게 ${tStr}부로 반영됩니다.`,
+        'ok'
+      );
+      // 헤더 날짜 업데이트
+      const badge=document.getElementById('data-date-badge');
+      if(badge){badge.textContent='📅 '+tStr;badge.style.display='inline-flex';}
+    } else if(res.status===401){
+      showStatus(
+        document.getElementById('export-status'),
+        '❌ 비밀번호가 서버와 일치하지 않습니다. Netlify 환경변수 ADMIN_PASSWORD 확인 필요.',
+        'err'
+      );
+    } else {
+      showStatus(
+        document.getElementById('export-status'),
+        '저장 실패: '+(json.error||'알 수 없는 오류'),
+        'err'
+      );
+    }
+  }catch(e){
+    showStatus(
+      document.getElementById('export-status'),
+      '서버 통신 실패: '+e.message+' (Netlify Blobs가 활성화되어 있는지 확인하세요)',
+      'err'
+    );
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML=originalHtml;
+  }
+}
+
+function exportViewerFile(){
+  if(!allData.length)return;
+  showLoading(true,'배포 파일 생성 중...');
+
+  // 현재 페이지 HTML 소스를 읽어서 데이터만 주입
+  const dataJson=JSON.stringify(allData);
+  const dateStr=new Date().toLocaleDateString('ko-KR');
+
+  // 현재 HTML 소스 가져오기
+  const src=document.documentElement.outerHTML;
+
+  // EMBEDDED_DATA와 EMBEDDED_DATE 교체
+  let viewer=src
+    .replace('const EMBEDDED_DATA = null;', `const EMBEDDED_DATA = ${dataJson};`)
+    .replace('const EMBEDDED_DATE = null;', `const EMBEDDED_DATE = '${dateStr}';`)
+    .replace(`const ADMIN_PW_HASH = '${adminPw}';`, `const ADMIN_PW_HASH = '${adminPw}';`);
+
+  // 파일 다운로드
+  const blob=new Blob([viewer],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`취업현황_대시보드_${dateStr.replace(/\./g,'').replace(/ /g,'')}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showLoading(false);
+  showStatus(document.getElementById('export-status'),'✓ 배포 파일이 다운로드되었습니다. 이용자에게 이 파일을 배포하세요.','ok');
+}
+
+// ══════════════════════════════════════
+// GEO STATUS & GEOCODING
+// ══════════════════════════════════════
+// 광역 단위 감지 (시군구 미확인)
+// ══════════════════════════════════════
+const PROVINCE_ONLY=new Set([
+  '서울','서울특별시','부산','부산광역시','인천','인천광역시',
+  '대구','대구광역시','대전','대전광역시','광주','광주광역시',
+  '울산','울산광역시','세종','세종특별자치시',
+  '경기','경기도','강원','강원도','강원특별자치도',
+  '충북','충청북도','충남','충청남도',
+  '전북','전라북도','전북특별자치도','전남','전라남도',
+  '경북','경상북도','경남','경상남도',
+  '제주','제주도','제주특별자치도',
+]);
+function isProvinceOnly(region){
+  if(!region)return false;
+  return PROVINCE_ONLY.has(region.trim());
+}
+
+function updateGeoStatus(){
+  const byS={};
+  allData.forEach(d=>{if(d.geoSrc)byS[d.geoSrc]=(byS[d.geoSrc]||0)+1;});
+  const miss       = allData.filter(d=>!d.lat).length;
+  const estimate   = allData.filter(d=>d.geoSrc==='bizno_estimate').length;
+  const provinceOnly= allData.filter(d=>d.lat&&d.geoSrc!=='bizno_estimate'&&isProvinceOnly(d.resolvedRegion)).length;
+  const precise    = allData.filter(d=>d.lat&&d.geoSrc!=='bizno_estimate'&&!isProvinceOnly(d.resolvedRegion)).length;
+
+  let h='';
+  if(precise)      h+=`<span class="ok">✓ 정확한 위치 ${precise}개</span><br>`;
+  if(provinceOnly) h+=`<span class="pend">⚠ 광역 추정 ${provinceOnly}개</span><br>`;
+  if(estimate)     h+=`<span style="color:#c05cbf">📍 사업자번호 추정 ${estimate}개</span><br>`;
+  if(miss)         h+=`<span style="color:var(--danger)">✗ 위치 미확인 ${miss}개</span>`;
+  if(!h)           h='<span class="ok">✓ 모든 위치 확인됨</span>';
+  document.getElementById('geo-status').innerHTML=h;
+  document.getElementById('geo-btn').disabled=(miss===0&&provinceOnly===0)||!isAdmin;
+  updateDataSummary();
+}
+
+// Nominatim address 객체에서 "시도 시군구" 형태로 조합
+function extractSigungu(addr, displayName){
+  if(!addr||!Object.keys(addr).length){
+    // address 없을 때 display_name에서 추출
+    const tokens=(displayName||'').split(',').map(t=>t.trim()).filter(Boolean);
+    const ko=tokens.filter(t=>t!=='대한민국'&&t!=='South Korea'&&/[가-힣]/.test(t));
+    return ko.slice(-4,-1).reverse().slice(0,3).join(' ');
+  }
+
+  const state   = addr.province || addr.state || '';
+  const city    = addr.city || addr.county || addr.town || addr.municipality || addr.village || '';
+  const district= addr.city_district || addr.borough || addr.quarter || addr.suburb || '';
+  const dong    = addr.neighbourhood || addr.hamlet || '';
+
+  // 시도 축약
+  let stateShort=state
+    .replace(/특별자치도$|특별자치시$|특별시$|광역시$/,'')
+    .replace(/도$/,'');
+
+  const bigCities=['서울','부산','대구','인천','광주','대전','울산','세종'];
+  let parts=[];
+  if(stateShort && !bigCities.includes(stateShort)) parts.push(stateShort);
+  if(city)     parts.push(city);
+  if(district && district!==city) parts.push(district);
+  // 동·읍·면은 너무 세분화되므로 생략
+
+  if(parts.length>0) return parts.join(' ');
+
+  // fallback: display_name 파싱
+  const tokens=(displayName||'').split(',').map(t=>t.trim()).filter(Boolean);
+  const ko=tokens.filter(t=>t!=='대한민국'&&t!=='South Korea'&&/[가-힣]/.test(t));
+  return ko.slice(-4,-1).reverse().slice(0,3).join(' ');
+}
+
+async function startGeocoding(){
+  const btn=document.getElementById('geo-btn');
+  btn.disabled=true; btn.textContent='🔄 검색 중...';
+
+  // Netlify Functions 사용 (서버 환경변수에 키 저장됨)
+  // 사용자 입력 키가 있으면 Nominatim 폴백 비활성화 신호로만 사용
+  const useKakao=true; // Netlify에서는 항상 카카오 API 사용
+
+  const needSearch=allData.filter(d=>!d.lat||isProvinceOnly(d.resolvedRegion));
+  const todo=[...new Map(needSearch.map(d=>[d.company,d])).values()];
+
+  let done=0, found=0, fail=0;
+  const total=todo.length;
+
+  const updateStatus=()=>{
+    document.getElementById('geo-status').innerHTML=
+      `<span class="pend">검색중 ${done}/${total}</span> `+
+      `<span class="ok">✓${found}</span> `+
+      `<span style="color:var(--danger)">✗${fail}</span> `+
+      `<span style="font-size:10px;color:var(--text-dim)">(카카오 API)</span>`;
+  };
+
+  const processOne=async(row)=>{
+    const cacheKey=row.company+'__precise';
+    if(geoCache[cacheKey]){
+      const c=geoCache[cacheKey];
+      _applyGeo(row.company,c[0],c[1],c[2]);
+      found++; done++; updateStatus(); return;
+    }
+    
+    let result=null;
+    
+    // 최우선: 수동 입력된 주소가 있으면 그걸로 검색
+    if(row.address){
+      result=await geocodeKakao(row.address);
+      if(result){
+        result.isManualAddress=true; // 수동 주소임을 표시
+      }
+    }
+    
+    // 수동 주소 없거나 실패하면 회사명으로 검색
+    if(!result){
+      result=await geocodeKakao(row.company);
+    }
+    
+    // 카카오 실패 시 네이버 지도 검색
+    if(!result){
+      result=await geocodeNaver(row.company);
+    }
+    
+    // 네이버도 실패하면 Nominatim 폴백
+    if(!result) result=await geocodeNominatim(row.company, row.resolvedRegion);
+
+    if(result){
+      geoCache[cacheKey]=[result.lat,result.lng,result.region];
+      _applyGeo(row.company,result.lat,result.lng,result.region,result.isManualAddress?'manual_address':null);
+      
+      // 디버깅: 처음 5개만 로그
+      if(found < 5){
+        console.log(`✓ ${row.company}: resolvedRegion="${result.region}"`);
+      }
+      
+      found++;
+    } else {
+      // 마지막 폴백: 사업자번호 기반 추정 (광역 단위 — 부정확)
+      const city=bizToCity(row.bizno);
+      if(city){
+        const result=resolveRegion(city);
+        if(result){
+          // bizno_estimate 표시: 추정 위치임을 명확히 구분
+          allData.filter(d=>d.company===row.company&&!d.lat).forEach(d=>{
+            d.lat=result.coords[0]+jitter(.06);
+            d.lng=result.coords[1]+jitter(.06);
+            d.geoSrc='bizno_estimate';
+            d.resolvedRegion=result.name+' (추정)';
+          });
+          found++;
+        } else { fail++; }
+      } else { fail++; }
+    }
+    done++; updateStatus();
+  };
+
+  // 카카오는 동시 10건 처리 (Netlify Functions 통해서)
+  const BATCH=10, DELAY=50;
+
+  showLoading(true, `위치 검색 중... 0/${total}`);
+  for(let i=0;i<todo.length;i+=BATCH){
+    const batch=todo.slice(i, i+BATCH);
+    await Promise.all(batch.map(row=>processOne(row)));
+    showLoading(true, `위치 검색 중... ${done}/${total} (✓${found} ✗${fail})`);
+    if(i+BATCH < todo.length) await new Promise(r=>setTimeout(r, DELAY));
+  }
+
+  showLoading(false);
+  
+  // 위치 검색 결과를 영구 캐시에 저장
+  if(found>0){
+    showLoading(true, '위치 캐시 저장 중...');
+    await savePersistentGeoCache();
+    showLoading(false);
+  }
+  
+  btn.textContent='🔍 미확인 업체 위치 검색';
+  updateGeoStatus();
+  legendTypeFilter=null; legendSizeFilter=null;
+  if(leafMap){leafMap.invalidateSize();renderMarkers();}
+  filteredData=[...allData]; applyFilters();
+}
+
+// 위치 검색 결과를 영구 캐시에 저장
+async function savePersistentGeoCache(){
+  try{
+    // allData에서 위치 정보만 추출하여 캐시 생성
+    const cache={};
+    allData.forEach(d=>{
+      if(d.lat&&d.lng&&d.geoSrc){
+        const key=d.company.toLowerCase().trim();
+        // 같은 회사명이 여러 개면 첫 번째 것만 저장 (대부분 같은 위치)
+        if(!cache[key]){
+          cache[key]={
+            lat:d.lat,
+            lng:d.lng,
+            geoSrc:d.geoSrc,
+            resolvedRegion:d.resolvedRegion
+          };
+        }
+      }
+    });
+
+    const res=await fetch('/api/save-geocache',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:adminPw, cache}),
+    });
+
+    if(res.ok){
+      const json=await res.json();
+      console.log(`✓ 위치 캐시 저장 완료: ${json.cacheSize}개 업체`);
+      // 사용자에게도 보이도록
+      showStatus(
+        document.getElementById('geo-status'),
+        `✓ ${json.cacheSize}개 업체 위치 캐시 저장 완료`,
+        'ok'
+      );
+    }else{
+      throw new Error('캐시 저장 실패');
+    }
+  }catch(e){
+    console.error('위치 캐시 저장 실패:',e);
+    showStatus(
+      document.getElementById('geo-status'),
+      '⚠️ 위치 캐시 저장 실패: '+e.message,
+      'warn'
+    );
+  }
+}
+
+// ── 카카오 로컬 검색 API (결과 검증 포함) ───────────────
+// 카테고리: 무관한 업종이면 버림 → 미확인 처리
+const BAD_CATS=new Set(['FD6','CE7','CS2','MT1','AD5','OL7','SW8','AG2']); // 음식점·카페·편의점·마트·숙박·주유소·지하철·중개업소
+const GOOD_CATS={'SC4':30,'PO3':25,'HP8':20,'CT1':15,'BK9':10,'AT4':5};   // 학교·공공기관·병원·문화시설·은행·관광
+
+async function geocodeKakao(company, restKey){
+  try{
+    const q=encodeURIComponent(company);
+    // Netlify Functions 프록시 사용 (CORS 우회)
+    // restKey는 서버 환경변수에 저장되어 있으므로 클라이언트에서 전달 안 함
+    const res=await fetch(`/api/geocode?q=${q}`);
+    if(!res.ok) return null;
+    const js=await res.json();
+    if(!js.documents||!js.documents.length) return null;
+
+    // 결과 중 가장 신뢰도 높은 것 선택
+    const best=pickBestKakaoResult(company, js.documents);
+    if(!best) return null;
+
+    const lat=parseFloat(best.y), lng=parseFloat(best.x);
+    if(lat<33||lat>38.5||lng<124||lng>132) return null;
+    const addr=best.road_address_name||best.address_name||'';
+    const region=extractSigunguFromAddr(addr);
+    return {lat, lng, region};
+  }catch(e){ return null; }
+}
+
+function pickBestKakaoResult(query, docs){
+  // 쿼리 정규화 (공백·괄호 제거)
+  const qNorm=query.replace(/[\s()（）\[\]]/g,'').toLowerCase();
+
+  const scored=docs.map(d=>{
+    // 나쁜 카테고리 → 즉시 탈락
+    if(BAD_CATS.has(d.category_group_code)) return null;
+
+    let score=0;
+    const pNorm=d.place_name.replace(/[\s()（）\[\]]/g,'').toLowerCase();
+
+    // 이름 유사도 점수
+    if(pNorm===qNorm)                          score+=100; // 완전 일치
+    else if(pNorm.includes(qNorm)||qNorm.includes(pNorm)) score+=60;  // 포함 관계
+    else {
+      // 단어 단위 부분 일치
+      const qTokens=query.split(/[\s()（）]+/).filter(t=>t.length>1);
+      const matched=qTokens.filter(t=>d.place_name.includes(t)).length;
+      score+=matched*20;
+    }
+
+    // 좋은 카테고리 보너스
+    score+=(GOOD_CATS[d.category_group_code]||0);
+
+    // 점수가 너무 낮으면 탈락 (이름 유사도 없으면 버림)
+    if(score<20) return null;
+    return {d, score};
+  }).filter(Boolean).sort((a,b)=>b.score-a.score);
+
+  return scored.length>0 ? scored[0].d : null;
+}
+
+// ── Nominatim 폴백 ───────────────────────────────────
+async function geocodeNominatim(company, hintRegion){
+  try{
+    const hint=hintRegion&&!isProvinceOnly(hintRegion)?hintRegion:'';
+    const q=encodeURIComponent(company+(hint?' '+hint:'')+' 대한민국');
+    const res=await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1&countrycodes=kr&addressdetails=1`,
+      {headers:{'Accept-Language':'ko'}}
+    );
+    const js=await res.json();
+    if(js&&js[0]){
+      const lat=parseFloat(js[0].lat), lng=parseFloat(js[0].lon);
+      if(lat<33||lat>38.5||lng<124||lng>132) return null;
+      const region=extractSigungu(js[0].address||{},js[0].display_name||'');
+      return {lat, lng, region};
+    }
+  }catch(e){ return null; }
+  return null;
+}
+
+// ── 네이버 지도 검색 (카카오 실패 시 폴백) ───────────────
+async function geocodeNaver(company){
+  try{
+    const res=await fetch('/api/geocode-naver',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:company})
+    });
+    
+    if(!res.ok) return null;
+    const js=await res.json();
+    
+    if(!js.results||!js.results.length) return null;
+    
+    // 첫 번째 결과 사용
+    const result=js.results[0];
+    const lat=parseFloat(result.lat);
+    const lng=parseFloat(result.lng);
+    
+    // 한국 범위 체크
+    if(lat<33||lat>38.5||lng<124||lng>132) return null;
+    
+    const addr=result.address||'';
+    const region=extractSigunguFromAddr(addr);
+    return {lat, lng, region};
+  }catch(e){
+    console.warn('Naver geocode error:',e);
+    return null;
+  }
+}
+
+// 카카오 주소 문자열 → 시군구 추출
+// 예: "경기도 수원시 팔달구 인계로 123" → "경기 수원시 팔달구"
+function extractSigunguFromAddr(addr){
+  if(!addr)return '';
+  const parts=addr.split(' ');
+  let result=[];
+  for(const p of parts){
+    if(/도$|특별시$|광역시$|특별자치시$|특별자치도$/.test(p)){
+      // 시도 축약
+      result=[p.replace(/특별자치도$|특별자치시$|특별시$|광역시$/,'').replace(/도$/,'')];
+    } else if(/시$|군$|구$/.test(p)&&result.length>0){
+      result.push(p);
+      if(result.length>=2) break; // 시도+시군구까지만
+    } else if(result.length===0&&/시$/.test(p)){
+      // 광역시 직할구 (예: "부산시 해운대구" 형태)
+      result=[p.replace(/시$/,'')];
+    }
+  }
+  const extracted = result.join(' ');
+  
+  // RC 사전에서 매칭되는 전체 키 찾기 (시도가 빠진 경우 보완)
+  return ensureFullRegionName(extracted);
+}
+
+// 부분 지역명을 RC 사전에서 찾아 완전한 "시도 시군구" 형식으로 변환
+// 예: "양주시" → "경기 양주시", "강남구" → "서울 강남구"
+function ensureFullRegionName(partialName){
+  if(!partialName) return '';
+  
+  // 이미 공백이 있으면 (시도 포함) 그대로 반환
+  if(partialName.includes(' ')) {
+    return partialName;
+  }
+  
+  // RC 사전에서 정확히 일치하는 키 찾기
+  if(RC[partialName]) {
+    return partialName;
+  }
+  
+  // RC 사전에서 부분 일치하는 키 찾기
+  for(const key of Object.keys(RC)){
+    // "경기 양주시"에서 "양주" 또는 "양주시"가 포함되면 매칭
+    const tokens = key.split(' ');
+    if(tokens.length > 1){
+      const sigungu = tokens.slice(1).join(' ');
+      if(sigungu === partialName || sigungu.includes(partialName) || partialName.includes(sigungu)){
+        // 디버깅: 처음 5번만 로그
+        if(!window._regionConversionCount) window._regionConversionCount = 0;
+        if(window._regionConversionCount < 5){
+          console.log(`🔄 지역명 변환: "${partialName}" → "${key}"`);
+          window._regionConversionCount++;
+        }
+        return key; // 전체 키 반환 (예: "경기 양주시")
+      }
+    }
+  }
+  
+  // 매칭 실패 시 원본 반환 (디버깅용)
+  if(!window._regionFailCount) window._regionFailCount = 0;
+  if(window._regionFailCount < 5){
+    console.warn(`⚠️ 지역명 변환 실패: "${partialName}" (RC 사전에 없음)`);
+    window._regionFailCount++;
+  }
+  
+  return partialName;
+}
+
+// 기업명 기준으로 allData 행 전체에 geo 정보 적용 (jitter 최소화)
+function _applyGeo(company, lat, lng, reg, srcOverride){
+  const rows=allData.filter(d=>d.company===company&&(!d.lat||isProvinceOnly(d.resolvedRegion)));
+  rows.forEach((d,i)=>{
+    // 같은 기업이 여러 행이면 아주 작은 offset만 추가 (최대 300m 수준)
+    d.lat=lat+(i===0?0:jitter(.003));
+    d.lng=lng+(i===0?0:jitter(.003));
+    d.geoSrc=srcOverride||'search';
+    d.resolvedRegion=reg;
+  });
+}
+
+// ══════════════════════════════════════
+// TABS
+// ══════════════════════════════════════
+function switchTab(tab){
+  document.getElementById('chart-tab').style.display=tab==='chart'?'block':'none';
+  document.getElementById('map-tab').style.display=tab==='map'?'block':'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&tab==='chart')||(i===1&&tab==='map')));
+  if(tab==='map'){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(!leafMap)initMap();
+      else{leafMap.invalidateSize();renderMarkers();}
+    }));
+  } else {
+    clearCoSearch();
+    legendTypeFilter=null;
+    legendSizeFilter=null;
+  }
+}
+
+// ══════════════════════════════════════
+// MAP
+// ══════════════════════════════════════
+function initMap(){
+  if(leafMap)return;
+  leafMap=L.map('osm-map',{center:[36.5,127.8],zoom:7});
+  const tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+  tileLayer.addTo(leafMap);
+  // 타일 로드 후 마커 렌더 (지도 크기가 확정된 뒤)
+  leafMap.whenReady(()=>{
+    leafMap.invalidateSize();
+    renderMarkers();
+  });
+}
+
+function getMapData(){
+  const y=document.getElementById('mf-year').value;
+  const d=document.getElementById('mf-dept').value;
+  const t=document.getElementById('mf-type').value;
+  return allData.filter(r=>{
+    if(y&&r.year!==y)return false;
+    if(d&&r.dept!==d)return false;
+    if(t&&r.type!==t)return false;
+    // lat/lng가 숫자인지 확실히 검사
+    const lat=parseFloat(r.lat);
+    const lng=parseFloat(r.lng);
+    return !isNaN(lat)&&!isNaN(lng)&&lat!==0&&lng!==0;
+  });
+}
+
+function aggregateCo(rows){
+  const m=new Map();
+  rows.forEach(r=>{
+    if(!m.has(r.company)){
+      m.set(r.company,{
+        company:r.company,lat:r.lat,lng:r.lng,
+        count:0,depts:new Set(),years:new Set(),
+        type:r.type,region:r.resolvedRegion,geoSrc:r.geoSrc,
+      });
+    }
+    const c=m.get(r.company);
+    c.count+=r.count;
+    c.depts.add(r.dept);
+    c.years.add(r.year);
+    // lat/lng가 없으면 나중에 채워진 값으로 업데이트
+    if(!c.lat&&r.lat){c.lat=r.lat;c.lng=r.lng;c.region=r.resolvedRegion;c.geoSrc=r.geoSrc;}
+  });
+  return [...m.values()];
+}
+
+// 취업인원 구간 정의 (범례·필터 공유)
+const SIZE_STEPS=[
+  {key:'s1', label:'1명',     min:1,  max:1,  px:12},
+  {key:'s2', label:'2–3명',   min:2,  max:3,  px:18},
+  {key:'s3', label:'4–5명',   min:4,  max:5,  px:24},
+  {key:'s4', label:'6–10명',  min:6,  max:10, px:32},
+  {key:'s5', label:'11–20명', min:11, max:20, px:42},
+  {key:'s6', label:'21명+',   min:21, max:Infinity, px:52},
+];
+
+// 취업인원 → 원 크기 (고정 구간)
+function countToSize(n){
+  return (SIZE_STEPS.find(s=>n>=s.min&&n<=s.max)||SIZE_STEPS[SIZE_STEPS.length-1]).px;
+}
+function countToStepKey(n){
+  return (SIZE_STEPS.find(s=>n>=s.min&&n<=s.max)||SIZE_STEPS[SIZE_STEPS.length-1]).key;
+}
+
+// 기업유형 → 색상 (데이터 기반으로 일관성 유지)
+const TYPE_COLOR_MAP={}; // 전역 캐시 — renderMarkers 호출 시 갱신
+
+function renderMarkers(){
+  if(!leafMap)return;
+  leafMarkers.forEach(m=>leafMap.removeLayer(m)); leafMarkers=[];
+
+  // 기업유형 색상 매핑 (전체 allData 기준으로 고정)
+  const allTypes=[...new Set(allData.map(d=>d.type))].sort();
+  allTypes.forEach((t,i)=>{ if(!TYPE_COLOR_MAP[t]) TYPE_COLOR_MAP[t]=TC[i%TC.length]; });
+
+  let cos=aggregateCo(getMapData());
+
+  // 범례 필터 적용
+  if(legendTypeFilter&&legendTypeFilter.size>0){
+    cos=cos.filter(c=>legendTypeFilter.has(c.type));
+  }
+  if(legendSizeFilter&&legendSizeFilter.size>0){
+    cos=cos.filter(c=>legendSizeFilter.has(countToStepKey(c.count)));
+  }
+
+  // ── 시도·시군구 2단계 집계 ──────────────────────────────
+  // resolvedRegion 예: "경기 수원시", "서울 강남구", "경기", "서울"
+  const sidoMap={};  // { '경기': { count, sigungu: { '수원시': count, ... } } }
+
+  // 디버깅: resolvedRegion 값들 확인
+  console.log('=== 지역별 현황 디버깅 ===');
+  const sampleRegions = cos.slice(0, 10).map(c => ({
+    company: c.company,
+    resolvedRegion: c.resolvedRegion,
+    region: c.region,
+    hasSpace: (c.resolvedRegion||'').includes(' ')
+  }));
+  console.table(sampleRegions);
+
+  cos.forEach(c=>{
+    const r=(c.resolvedRegion||c.region||'미확인').trim();
+    // 시도 추출: 첫 번째 토큰 (공백 기준)
+    const tokens=r.split(' ');
+    const sido=tokens[0]||'미확인';
+    const sigungu=tokens.slice(1).join(' ')||'(시군구 미확인)';
+    
+    // 디버깅: 첫 5개 샘플
+    if(Object.keys(sidoMap).length < 5){
+      console.log(`파싱: "${r}" → sido:"${sido}", sigungu:"${sigungu}"`);
+    }
+
+    if(!sidoMap[sido]) sidoMap[sido]={count:0,sigungu:{}};
+    sidoMap[sido].count+=c.count;
+    if(!sidoMap[sido].sigungu[sigungu]) sidoMap[sido].sigungu[sigungu]={count:0,cos:0};
+    sidoMap[sido].sigungu[sigungu].count+=c.count;
+    sidoMap[sido].sigungu[sigungu].cos++;
+  });
+
+  const sidoSorted=Object.entries(sidoMap).sort((a,b)=>b[1].count-a[1].count);
+  const maxSido=sidoSorted[0]?.[1].count||1;
+
+  document.getElementById('mstat-co').textContent=cos.length;
+  document.getElementById('mstat-cnt').textContent=cos.reduce((s,c)=>s+c.count,0).toLocaleString();
+  document.getElementById('region-list').innerHTML=sidoSorted.map(([sido,sd],si)=>{
+    const sgSorted=Object.entries(sd.sigungu).sort((a,b)=>b[1].count-a[1].count);
+    const sgHtml=sgSorted.map(([sg,sgd])=>`
+      <li class="ritem-sg" onclick="flyToSigungu('${esc(sido)} ${sg==='(시군구 미확인)'?'':sg}'.trim())">
+        <div class="sg-bar-wrap"><div class="sg-bar" style="width:${(sgd.count/sd.count*100).toFixed(0)}%"></div></div>
+        <span class="sg-name">${esc(sg)}</span>
+        <span class="sg-count">${sgd.count}명</span>
+      </li>`).join('');
+
+    return`<li class="ritem-sido">
+      <div class="sido-row" onclick="toggleSido(this)">
+        <div class="rdot" style="background:${TC[si%TC.length]}"></div>
+        <span class="rname">${esc(sido)}</span>
+        <div class="rbar-wrap"><div class="rbar" style="background:${TC[si%TC.length]};width:${(sd.count/maxSido*100).toFixed(0)}%"></div></div>
+        <span class="rcount">${sd.count}</span>
+        <span class="sido-arrow">▶</span>
+      </div>
+      <ul class="sigungu-list">${sgHtml}</ul>
+    </li>`;
+  }).join('');
+
+  // 마커 생성
+  cos.forEach(c=>{
+    const color=TYPE_COLOR_MAP[c.type]||TC[0];
+    const size=countToSize(c.count);
+    const srcLabel={region:'지역컬럼',bizno:'사업자번호',search:'검색',bizno_estimate:'사업자번호 추정'}[c.geoSrc]||'미확인';
+
+    const isEstimate=c.geoSrc==='bizno_estimate';
+    const dotStyle=isEstimate
+      ? `width:${size}px;height:${size}px;background:${color};opacity:.55;border-style:dashed;`
+      : `width:${size}px;height:${size}px;background:${color};`;
+    const labelStyle=isEstimate
+      ? `opacity:.7;font-style:italic;`
+      : ``;
+
+    const icon=L.divIcon({
+      className:'',
+      html:`<div class="cm-wrap"><div class="cm-dot" style="${dotStyle}"></div><div class="cm-name" style="${labelStyle}">${esc(c.company)}${isEstimate?' ⚠':''}</div></div>`,
+      iconAnchor:[size/2, size+16],
+      popupAnchor:[0, -size-20],
+    });
+
+    const kakaoSearchUrl=`https://map.kakao.com/?q=${encodeURIComponent(c.company)}`;
+    const naverSearchUrl=`https://map.naver.com/v5/search/${encodeURIComponent(c.company)}`;
+
+    const popup=`<div>
+      <div class="pop-title">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color};margin-right:5px;vertical-align:middle"></span>
+        ${esc(c.company)}
+      </div>
+      <div class="pop-row"><span class="pk">취업인원</span><span class="pv">${c.count}명</span></div>
+      <div class="pop-row"><span class="pk">학과</span><span class="pv">${esc([...c.depts].join(', '))}</span></div>
+      <div class="pop-row"><span class="pk">연도</span><span class="pv">${esc([...c.years].sort().join(', '))}</span></div>
+      <div class="pop-row"><span class="pk">기업유형</span><span class="pv">${esc(c.type)}</span></div>
+      <div class="pop-row"><span class="pk">지역</span><span class="pv">${esc(c.region||'-')} <span style="font-size:10px;color:#555e7a">(${srcLabel})</span></span></div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <a href="${kakaoSearchUrl}" target="_blank" rel="noopener"
+          style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 6px;background:#FEE500;color:#000;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;font-family:'Noto Sans KR',sans-serif;">
+          <img src="https://t1.kakaocdn.net/kakao_for_business/favicon/kakao_map.ico" width="14" height="14" onerror="this.style.display='none'" style="flex-shrink:0"/>
+          카카오맵
+        </a>
+        <a href="${naverSearchUrl}" target="_blank" rel="noopener"
+          style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 6px;background:#03C75A;color:#fff;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;font-family:'Noto Sans KR',sans-serif;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/></svg>
+          네이버지도
+        </a>
+      </div>
+    </div>`;
+
+    const marker=L.marker([c.lat,c.lng],{icon});
+    marker.bindPopup(popup,{maxWidth:290,minWidth:220});
+    marker.addTo(leafMap);
+    leafMarkers.push(marker);
+  });
+
+  // 범례 갱신
+  updateMapLegend();
+}
+
+function updateMapLegend(){
+  const el=document.getElementById('map-legend');
+  if(!el)return;
+
+  const allCos=aggregateCo(getMapData()); // 범례 필터 적용 전 전체 목록
+  const usedTypes=[...new Set(allCos.map(c=>c.type))].sort();
+
+  // ── 기업유형 범례 ──────────────────────
+  const typeHtml=usedTypes.map(t=>{
+    const active=!legendTypeFilter||legendTypeFilter.has(t);
+    const color=TYPE_COLOR_MAP[t]||TC[0];
+    const cnt=allCos.filter(c=>c.type===t).length;
+    return `<div class="leg-item ${active?'leg-on':'leg-off'}" onclick="toggleTypeFilter('${esc(t).replace(/'/g,"\\'")}')" title="${esc(t)}">
+      <div class="leg-dot" style="background:${active?color:color+'55'};border-color:${active?'rgba(255,255,255,.6)':'rgba(255,255,255,.2)'}"></div>
+      <span class="leg-label" style="color:${active?'#c8d0e0':'#555e7a'}">${esc(t)}</span>
+      <span class="leg-cnt" style="color:${active?color+'cc':'#333c55'}">${cnt}</span>
+    </div>`;
+  }).join('');
+
+  // ── 취업인원 구간 범례 ─────────────────
+  const sizeHtml=SIZE_STEPS.map(s=>{
+    const active=!legendSizeFilter||legendSizeFilter.has(s.key);
+    const hasCos=allCos.some(c=>countToStepKey(c.count)===s.key);
+    if(!hasCos)return ''; // 해당 구간 기업 없으면 숨김
+    return `<div class="leg-item ${active?'leg-on':'leg-off'}" onclick="toggleSizeFilter('${s.key}')">
+      <div class="leg-size-dot-wrap">
+        <div style="width:${s.px}px;height:${s.px}px;border-radius:50%;background:${active?'#5b8dee':'#2a3a5a'};border:2px solid ${active?'rgba(255,255,255,.55)':'rgba(255,255,255,.15)'};flex-shrink:0"></div>
+      </div>
+      <span class="leg-label" style="color:${active?'#c8d0e0':'#555e7a'}">${s.label}</span>
+    </div>`;
+  }).join('');
+
+  const hasTypeFilter=legendTypeFilter&&legendTypeFilter.size>0;
+  const hasSizeFilter=legendSizeFilter&&legendSizeFilter.size>0;
+  const hasAnyFilter=hasTypeFilter||hasSizeFilter;
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:#8890aa;letter-spacing:.5px;text-transform:uppercase">기업유형</div>
+      ${hasTypeFilter?`<button onclick="resetTypeFilter()" style="background:transparent;border:none;color:#5b8dee;font-size:10px;cursor:pointer;padding:0;font-family:inherit">전체</button>`:''}
+    </div>
+    ${typeHtml}
+    <div style="border-top:1px solid #2e3347;margin:9px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:#8890aa;letter-spacing:.5px;text-transform:uppercase">취업인원</div>
+      ${hasSizeFilter?`<button onclick="resetSizeFilter()" style="background:transparent;border:none;color:#5b8dee;font-size:10px;cursor:pointer;padding:0;font-family:inherit">전체</button>`:''}
+    </div>
+    ${sizeHtml}
+    ${hasAnyFilter?`<div style="border-top:1px solid #2e3347;margin-top:9px;padding-top:8px">
+      <button onclick="resetAllLegendFilters()" style="width:100%;padding:5px;background:rgba(91,141,238,.12);border:1px solid rgba(91,141,238,.3);color:#5b8dee;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600">필터 전체 해제</button>
+    </div>`:''}
+  `;
+}
+
+// ── 범례 클릭 토글 ────────────────────────
+function toggleTypeFilter(type){
+  if(!legendTypeFilter){
+    // 처음 클릭: 해당 유형만 선택
+    legendTypeFilter=new Set([type]);
+  } else if(legendTypeFilter.has(type)){
+    legendTypeFilter.delete(type);
+    if(legendTypeFilter.size===0)legendTypeFilter=null;
+  } else {
+    legendTypeFilter.add(type);
+  }
+  renderMarkers();
+}
+
+function toggleSizeFilter(key){
+  if(!legendSizeFilter){
+    legendSizeFilter=new Set([key]);
+  } else if(legendSizeFilter.has(key)){
+    legendSizeFilter.delete(key);
+    if(legendSizeFilter.size===0)legendSizeFilter=null;
+  } else {
+    legendSizeFilter.add(key);
+  }
+  renderMarkers();
+}
+
+function resetTypeFilter(){ legendTypeFilter=null; renderMarkers(); }
+function resetSizeFilter(){ legendSizeFilter=null; renderMarkers(); }
+function resetAllLegendFilters(){ legendTypeFilter=null; legendSizeFilter=null; renderMarkers(); }
+
+// ══════════════════════════════════════
+// 업체명 검색
+// ══════════════════════════════════════
+// 현재 지도에 표시된 집계 업체 목록 캐시
+let _coCache=[];
+
+function onCoSearch(q){
+  const clearBtn=document.getElementById('co-clear-btn');
+  const resultsEl=document.getElementById('co-results');
+  const countEl=document.getElementById('co-count');
+  q=q.trim();
+
+  clearBtn.style.display=q?'block':'none';
+
+  if(!q){
+    resultsEl.style.display='none';
+    countEl.textContent='';
+    return;
+  }
+
+  // 전체 데이터에서 업체명 검색 (위치 없는 것도 포함)
+  const ql=q.toLowerCase();
+  const matched=[...new Map(
+    allData
+      .filter(d=>d.company.toLowerCase().includes(ql))
+      .map(d=>[d.company,d])
+  ).values()].slice(0,30);
+
+  countEl.textContent=matched.length?`${matched.length}개 검색됨`:'';
+
+  if(!matched.length){
+    resultsEl.innerHTML=`<div class="co-no-result">검색 결과 없음</div>`;
+    resultsEl.style.display='block';
+    return;
+  }
+
+  // 하이라이트 적용
+  function hl(name){
+    const idx=name.toLowerCase().indexOf(ql);
+    if(idx<0)return esc(name);
+    return esc(name.slice(0,idx))
+      +`<span class="co-hl">${esc(name.slice(idx,idx+q.length))}</span>`
+      +esc(name.slice(idx+q.length));
+  }
+
+  resultsEl.innerHTML=matched.map(d=>{
+    const hasGeo=d.lat?'📍':'📭';
+    const depts=[...new Set(allData.filter(r=>r.company===d.company).map(r=>r.dept))].join(', ');
+    const total=allData.filter(r=>r.company===d.company).reduce((s,r)=>s+r.count,0);
+    return `<div class="co-result-item" onclick="jumpToCompany('${esc(d.company).replace(/'/g,"\\'")}')">
+      <div class="co-result-name">${hasGeo} ${hl(d.company)}</div>
+      <div class="co-result-meta">${esc(depts)} · ${total}명${d.resolvedRegion?' · '+esc(d.resolvedRegion):''}</div>
+    </div>`;
+  }).join('');
+  resultsEl.style.display='block';
+}
+
+function clearCoSearch(){
+  document.getElementById('co-search').value='';
+  document.getElementById('co-clear-btn').style.display='none';
+  document.getElementById('co-results').style.display='none';
+  document.getElementById('co-count').textContent='';
+}
+
+function jumpToCompany(company){
+  // 검색창 닫기
+  document.getElementById('co-search').value=company;
+  document.getElementById('co-results').style.display='none';
+  document.getElementById('co-count').textContent='';
+
+  // 지도에서 해당 마커 찾아 팝업 열기
+  const marker=leafMarkers.find(m=>{
+    const el=m.getElement();
+    return el&&el.querySelector('.cm-name')&&el.querySelector('.cm-name').textContent===company;
+  });
+
+  if(marker){
+    leafMap.flyTo(marker.getLatLng(),13,{duration:1});
+    setTimeout(()=>marker.openPopup(),1100);
+  } else {
+    // 마커 없음 = 위치 미확인 → 안내
+    const d=allData.find(r=>r.company===company&&r.lat);
+    if(d){
+      leafMap.flyTo([d.lat,d.lng],13,{duration:1});
+    } else {
+      // 위치 데이터 아예 없음
+      document.getElementById('co-count').textContent='⚠️ 지도에 위치 정보가 없는 업체입니다.';
+      document.getElementById('co-count').style.color='var(--accent4)';
+      setTimeout(()=>{
+        document.getElementById('co-count').textContent='';
+        document.getElementById('co-count').style.color='';
+      },3000);
+    }
+  }
+}
+
+function toggleSido(rowEl){
+  rowEl.classList.toggle('open');
+  const list=rowEl.nextElementSibling;
+  if(list) list.classList.toggle('open');
+}
+
+function flyToSigungu(region){
+  if(!leafMap||!region)return;
+  // RC에서 정확한 키 찾기
+  const r=region.trim();
+  const coords=RC[r];
+  if(coords){leafMap.flyTo(coords,11,{duration:1});return;}
+  // 부분 일치 시도
+  for(const[k,v] of Object.entries(RC)){
+    if(r.includes(k)||k.includes(r)){leafMap.flyTo(v,11,{duration:1});return;}
+  }
+}
+
+function flyTo(name){
+  if(!leafMap||!name)return;
+  const c=RC[name]||RC[name.split(' ')[0]];
+  if(c)leafMap.flyTo(c,10,{duration:1.2});
+}
+
+// ══════════════════════════════════════
+// CHART FILTERS
+// ══════════════════════════════════════
+function applyFilters(){
+  // 선택된 연도들 가져오기
+  const selectedYears=Array.from(document.querySelectorAll('#filter-year-checks input[type="checkbox"]:checked'))
+    .map(cb=>cb.value);
+  const d=document.getElementById('filter-dept').value;
+  const t=document.getElementById('filter-type').value;
+  
+  filteredData=allData.filter(r=>{
+    if(selectedYears.length>0&&!selectedYears.includes(r.year))return false;
+    if(d&&r.dept!==d)return false;
+    if(t&&r.type!==t)return false;
+    return true;
+  });
+  curPage=1; updateDashboard();
+}
+function resetFilters(){
+  // 모든 연도 체크박스 체크
+  document.querySelectorAll('#filter-year-checks input[type="checkbox"]').forEach(cb=>cb.checked=true);
+  ['filter-dept','filter-type'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('table-search').value='';
+  filteredData=[...allData]; curPage=1; updateDashboard();
+}
+
+function showLocationUnconfirmed(){
+  // 캐시 확인 (30초 유효)
+  if(!window._unconfirmedCache) window._unconfirmedCache={data:null,time:0};
+  const now=Date.now();
+  const cacheValid=(now-window._unconfirmedCache.time)<30000;
+  
+  // 캐시된 데이터 사용 (속도 개선)
+  let unconfirmed;
+  if(cacheValid && window._unconfirmedCache.data){
+    unconfirmed=window._unconfirmedCache.data;
+  }else{
+    // 위치 정보가 없는 업체 찾기 (lat/lng가 없거나 geoSrc가 미확인)
+    unconfirmed=allData.filter(d=>!d.lat||!d.lng||!d.geoSrc);
+    window._unconfirmedCache={data:unconfirmed,time:now};
+  }
+  
+  const uniqueCompanies=[...new Set(unconfirmed.map(d=>d.company))].sort();
+  
+  if(uniqueCompanies.length===0){
+    document.getElementById('unconfirmed-list').innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px;">모든 업체의 위치가 파악되었습니다. ✓</p>';
+  }else{
+    const totalCount=unconfirmed.reduce((sum,d)=>sum+d.count,0);
+    const totalRows=unconfirmed.length;
+    
+    document.getElementById('unconfirmed-list').innerHTML=`
+      <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);">
+        <strong>${uniqueCompanies.length}개 업체</strong> (총 ${totalCount}명, ${totalRows}개 행)
+      </div>
+      <ul style="list-style:none;padding:0;margin:0;">
+        ${uniqueCompanies.map((company,i)=>{
+          const rows=unconfirmed.filter(d=>d.company===company);
+          const cnt=rows.reduce((sum,d)=>sum+d.count,0);
+          const depts=[...new Set(rows.map(d=>d.dept))].join(', ');
+          const firstRow=rows[0];
+          const hasLocation=firstRow&&firstRow.lat&&firstRow.lng;
+          return`<li style="padding:10px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
+              <div style="flex:1;">
+                <div style="font-weight:600;margin-bottom:4px;">${i+1}. ${esc(company)}</div>
+                <div style="font-size:11px;color:var(--text-muted);">학과: ${esc(depts)}</div>
+                ${hasLocation?`<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">
+                  위도: ${firstRow.lat.toFixed(5)} | 경도: ${firstRow.lng.toFixed(5)}
+                </div>`:''}
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+                <span style="color:var(--text-muted);font-size:12px;white-space:nowrap;">${cnt}명</span>
+                <button onclick="editLocation('${esc(company)}')" 
+                        style="padding:4px 10px;font-size:11px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;white-space:nowrap;">
+                  위치수정
+                </button>
+              </div>
+            </div>
+          </li>`;
+        }).join('')}
+      </ul>
+    `;
+  }
+  
+  // 전역 변수에 저장 (다운로드용)
+  window._unconfirmedCompanies=unconfirmed;
+  
+  document.getElementById('unconfirmed-modal').style.display='flex';
+}
+
+// 관리자 위치 수정 기능
+function editLocation(company){
+  if(!isAdmin){
+    alert('관리자만 수정할 수 있습니다.');
+    return;
+  }
+  
+  const lat=prompt('위도를 입력하세요 (예: 37.5665):', '37.5');
+  if(!lat || lat.trim()==='') return;
+  
+  const lng=prompt('경도를 입력하세요 (예: 126.9780):', '127.0');
+  if(!lng || lng.trim()==='') return;
+  
+  const latNum=parseFloat(lat);
+  const lngNum=parseFloat(lng);
+  
+  // 유효성 검사
+  if(isNaN(latNum)||isNaN(lngNum)||latNum<33||latNum>39||lngNum<124||lngNum>132){
+    alert('❌ 올바른 좌표가 아닙니다.\n한국 범위: 위도 33~39, 경도 124~132');
+    return;
+  }
+  
+  // 해당 회사의 모든 데이터 업데이트
+  let updated=0;
+  allData.forEach(d=>{
+    if(d.company===company){
+      d.lat=latNum;
+      d.lng=lngNum;
+      d.geoSrc='manual';
+      d.resolvedRegion='수동 입력';
+      updated++;
+    }
+  });
+  
+  // 캐시 무효화
+  window._unconfirmedCache={data:null,time:0};
+  
+  // 화면 새로고침
+  showLocationUnconfirmed();
+  if(typeof renderMarkers==='function') renderMarkers();
+  
+  alert(`✓ ${company}의 위치가 수정되었습니다 (${updated}개 행).\n\n"서버에 저장" 버튼을 클릭하여 저장하세요.`);
+}
+
+function downloadUnconfirmedList(){
+  if(!window._unconfirmedCompanies||window._unconfirmedCompanies.length===0){
+    alert('다운로드할 데이터가 없습니다.');
+    return;
+  }
+  
+  // CSV 생성
+  const headers=['기업명','학과','연도','인원','지역정보','사업자번호','기업유형'];
+  const rows=window._unconfirmedCompanies.map(d=>[
+    d.company,
+    d.dept,
+    d.year,
+    d.count,
+    d.region||'없음',
+    d.bizno||'',
+    d.type||'미분류'
+  ]);
+  
+  const csv=[
+    headers.join(','),
+    ...rows.map(row=>row.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(','))
+  ].join('\n');
+  
+  // BOM 추가 (엑셀에서 한글 깨짐 방지)
+  const bom='\uFEFF';
+  const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=`위치미파악업체_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  
+  alert('✓ CSV 파일이 다운로드되었습니다.\n엑셀에서 열어보세요!');
+}
+
+// 디버그용: 캐시 초기화 (관리자 전용)
+async function clearGeoCache(){
+  if(!confirm('위치 캐시를 완전히 삭제합니다. 계속하시겠습니까?'))return;
+  try{
+    const res=await fetch('/api/save-geocache',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:adminPw, cache:{}}),
+    });
+    if(res.ok){
+      alert('✓ 캐시 초기화 완료! 이제 "위치 검색"을 다시 실행하세요.');
+      console.log('✓ Geocache cleared');
+    }else{
+      alert('❌ 캐시 초기화 실패');
+    }
+  }catch(e){
+    alert('❌ 오류: '+e.message);
+  }
+}
+
+// ══════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════
+function updateDashboard(){updateStats();renderDeptChart();renderTypeChart();renderTrendChart();renderTopCo();renderTable();}
+
+function updateStats(){
+  const d=filteredData;
+  const total=d.reduce((s,r)=>s+r.count,0);
+  const cos=new Set(d.map(r=>r.company)).size;
+  const deps=new Set(d.map(r=>r.dept)).size;
+  const yrs=[...new Set(d.map(r=>r.year))].filter(y=>y!=='연도미상').sort();
+  document.getElementById('stat-total').textContent=total.toLocaleString();
+  document.getElementById('stat-companies').textContent=cos.toLocaleString();
+  document.getElementById('stat-depts').textContent=deps.toLocaleString();
+  if(yrs.length>1){document.getElementById('stat-years').textContent=yrs[0]+'~'+yrs[yrs.length-1];document.getElementById('stat-years-sub').textContent=yrs.length+'개 연도';}
+  else if(yrs.length===1){document.getElementById('stat-years').textContent=yrs[0];document.getElementById('stat-years-sub').textContent='단일 연도';}
+  else document.getElementById('stat-years').textContent='-';
+}
+
+const CD={c:'#495057',g:'rgba(222,226,230,.6)',f:{family:"'Noto Sans KR',sans-serif",size:12,weight:500}};
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+function grp(data,key,vk){const m={};data.forEach(d=>{const k=d[key]||'기타';m[k]=(m[k]||0)+(vk?d[vk]:1);});return m;}
+
+function renderDeptChart(){
+  const s=Object.entries(grp(filteredData,'dept','count')).sort((a,b)=>b[1]-a[1]);
+  mkChart('chart-dept',{type:'bar',data:{labels:s.map(e=>e[0]),datasets:[{data:s.map(e=>e[1]),backgroundColor:s.map((_,i)=>TC[i%TC.length]),borderRadius:8,borderSkipped:false,barPercentage:0.8}]},options:{indexAxis:s.length>6?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(255,255,255,0.95)',titleColor:'#212529',bodyColor:'#495057',borderColor:'#dee2e6',borderWidth:1,padding:12,displayColors:true,boxPadding:6}},scales:{x:{ticks:{color:CD.c,font:CD.f},grid:{color:CD.g,drawBorder:false}},y:{ticks:{color:CD.c,font:CD.f},grid:{color:CD.g,drawBorder:false}}}}});
+}
+function renderTypeChart(){
+  const s=Object.entries(grp(filteredData,'type','count')).sort((a,b)=>b[1]-a[1]);
+  mkChart('chart-type',{type:'doughnut',data:{labels:s.map(e=>e[0]),datasets:[{data:s.map(e=>e[1]),backgroundColor:TC,borderWidth:3,borderColor:'#ffffff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:CD.c,font:CD.f,padding:10,boxWidth:12}}},cutout:'65%'}});
+}
+function renderTrendChart(){
+  const yrs=[...new Set(filteredData.map(d=>d.year))].filter(y=>y!=='연도미상').sort();
+  if(yrs.length<2){
+    const s=Object.entries(grp(filteredData,'year','count')).sort((a,b)=>a[0].localeCompare(b[0]));
+    mkChart('chart-trend',{type:'bar',data:{labels:s.map(e=>e[0]),datasets:[{data:s.map(e=>e[1]),backgroundColor:'#5b8dee',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:CD.c},grid:{color:CD.g}},y:{ticks:{color:CD.c},grid:{color:CD.g}}}}});
+    return;
+  }
+  const top=Object.entries(grp(filteredData,'dept','count')).sort((a,b)=>b[1]-a[1]).slice(0,5).map(e=>e[0]);
+  const ds=top.map((dep,i)=>({label:dep,data:yrs.map(y=>filteredData.filter(d=>d.dept===dep&&d.year===y).reduce((s,r)=>s+r.count,0)),borderColor:TC[i],backgroundColor:TC[i]+'22',fill:true,tension:.35,pointRadius:5,pointHoverRadius:7,borderWidth:3,pointBorderWidth:2,pointBorderColor:'#ffffff'}));
+  mkChart('chart-trend',{type:'line',data:{labels:yrs,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:CD.c,font:CD.f,padding:10,boxWidth:14,usePointStyle:true}},tooltip:{backgroundColor:'rgba(255,255,255,0.95)',titleColor:'#212529',bodyColor:'#495057',borderColor:'#dee2e6',borderWidth:1,padding:12}},scales:{x:{ticks:{color:CD.c,font:CD.f},grid:{color:CD.g,drawBorder:false}},y:{ticks:{color:CD.c,font:CD.f},grid:{color:CD.g,drawBorder:false},beginAtZero:true}}}});
+}
+function renderTopCo(){
+  const s=Object.entries(grp(filteredData,'company','count')).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const max=s[0]?.[1]||1;
+  document.getElementById('top-companies').innerHTML=s.map(([name,cnt],i)=>`<li class="rank-item"><span class="rank-num">${i+1}</span><span class="rank-name">${name}</span><div class="rank-bar-wrap"><div class="rank-bar" style="width:${(cnt/max*100).toFixed(0)}%"></div></div><span class="rank-count">${cnt}</span></li>`).join('');
+}
+
+// ══════════════════════════════════════
+// TABLE
+// ══════════════════════════════════════
+function renderTable(){
+  const q=document.getElementById('table-search').value.toLowerCase();
+  let data=filteredData.filter(d=>!q||(d.company+d.dept+d.type+d.resolvedRegion).toLowerCase().includes(q));
+  const total=data.length,tp=Math.ceil(total/itemsPerPage);
+  if(curPage>tp)curPage=1;
+  const page=data.slice((curPage-1)*itemsPerPage,curPage*itemsPerPage);
+  const cols=['연도','학과명','기업명','기업유형','지역','취업인원'];
+  if(cmap.bizno)cols.splice(3,0,'사업자번호');
+  document.getElementById('table-head').innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  const tcm={};[...new Set(filteredData.map(d=>d.type))].forEach((t,i)=>{tcm[t]=TC[i%TC.length];});
+  const srcMap={region:['#3dbf8c','지역컬럼'],bizno:['#5b8dee','사업자번호'],search:['#f0a04e','검색'],bizno_estimate:['#c05cbf','추정 (광역)']};
+  document.getElementById('table-body').innerHTML=page.map(d=>{
+    const tc=tcm[d.type]||'#888';
+    const tb=`<span class="badge" style="background:${tc}22;color:${tc};border:1px solid ${tc}44">${d.type}</span>`;
+    const[sc,sl]=srcMap[d.geoSrc]||['#555e7a','미확인'];
+    const sb=`<span style="font-size:10px;padding:2px 5px;border-radius:5px;background:${sc}18;color:${sc};border:1px solid ${sc}33">${sl}</span>`;
+    let r=`<td>${d.year}</td><td>${d.dept}</td><td>${d.company}</td>`;
+    if(cmap.bizno)r+=`<td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted)">${d.bizno}</td>`;
+    r+=`<td>${tb}</td><td><div style="display:flex;align-items:center;gap:5px">${sb}<span style="font-size:12px;color:var(--text-muted)">${d.resolvedRegion||'-'}</span></div></td>`;
+    r+=`<td style="font-family:'DM Mono',monospace">${d.count}</td>`;
+    return`<tr>${r}</tr>`;
+  }).join('');
+  const pag=document.getElementById('pagination');pag.innerHTML='';
+  if(tp>1){
+    const mk=(l,p,a,dis)=>{const b=document.createElement('button');b.className='page-btn'+(a?' active':'');b.textContent=l;b.disabled=dis;b.onclick=()=>{curPage=p;renderTable();};return b;};
+    pag.appendChild(mk('«',1,false,curPage===1));
+    pag.appendChild(mk('‹',curPage-1,false,curPage===1));
+    const st=Math.max(1,curPage-2),en=Math.min(tp,st+4);
+    for(let i=st;i<=en;i++)pag.appendChild(mk(i,i,i===curPage,false));
+    pag.appendChild(mk('›',curPage+1,false,curPage===tp));
+    pag.appendChild(mk('»',tp,false,curPage===tp));
+  }
+  document.getElementById('table-footer').textContent=`총 ${total.toLocaleString()}건 중 ${(curPage-1)*itemsPerPage+1}~${Math.min(curPage*itemsPerPage,total)}번째`;
+}
+
+function changeItemsPerPage(){
+  itemsPerPage=parseInt(document.getElementById('items-per-page').value);
+  curPage=1;
+  renderTable();
+}
+</script>
+</body>
+</html>
