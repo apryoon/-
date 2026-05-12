@@ -1289,6 +1289,12 @@ async function savePersistentGeoCache(){
   try{
     // allData에서 위치 정보만 추출하여 캐시 생성
     const cache={};
+    // 캐시가 비어있으면 저장 안 함
+    const cacheKeys = Object.keys(cache);
+    if(cacheKeys.length === 0){
+      alert('저장할 위치 데이터가 없습니다.');
+      return;
+    }
     allData.forEach(d=>{
       if(d.lat&&d.lng&&d.geoSrc){
         const key=d.company.toLowerCase().trim();
