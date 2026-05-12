@@ -1238,21 +1238,10 @@ async function startGeocoding(){
       
       found++;
     } else {
-      // 마지막 폴백: 사업자번호 기반 추정 (광역 단위 — 부정확)
-      const city=bizToCity(row.bizno);
-      if(city){
-        const result=resolveRegion(city);
-        if(result){
-          // bizno_estimate 표시: 추정 위치임을 명확히 구분
-          allData.filter(d=>d.company===row.company&&!d.lat).forEach(d=>{
-            d.lat=result.coords[0]+jitter(.06);
-            d.lng=result.coords[1]+jitter(.06);
-            d.geoSrc='bizno_estimate';
-            d.resolvedRegion=result.name+' (추정)';
-          });
-          found++;
-        } else { fail++; }
-      } else { fail++; }
+      // 카카오/네이버 둘 다 실패 → 사업자번호 fallback은 제거
+      // (사업자번호 앞 3자리는 세무서 코드라 실제 위치와 다른 경우가 많아 부정확)
+      // 위치 미확인으로 두고 관리자가 "위치수정" 버튼으로 직접 입력하도록 유도
+      fail++;
     }
     done++; updateStatus();
   };
@@ -1345,25 +1334,57 @@ const BAD_CATS=new Set(['FD6','CE7','CS2','MT1','AD5','OL7','SW8','AG2']); // �
 const GOOD_CATS={'SC4':30,'PO3':25,'HP8':20,'CT1':15,'BK9':10,'AT4':5};   // 학교·공공기관·병원·문화시설·은행·관광
 
 async function geocodeKakao(company, restKey){
+  // 1차: 원본 이름으로 검색
+  let result = await _kakaoQuery(company);
+  if(result) return result;
+ 
+  // 2차: 띄어쓰기 변형 시도 (붙어있는 이름 분리)
+  const variations = _generateNameVariations(company);
+  for(const v of variations){
+    result = await _kakaoQuery(v);
+    if(result) return result;
+  }
+  return null;
+}
+ 
+async function _kakaoQuery(query){
   try{
-    const q=encodeURIComponent(company);
-    // Netlify Functions 프록시 사용 (CORS 우회)
-    // restKey는 서버 환경변수에 저장되어 있으므로 클라이언트에서 전달 안 함
-    const res=await fetch(`/api/geocode?q=${q}`);
+    const q = encodeURIComponent(query);
+    const res = await fetch(`/api/geocode?q=${q}`);
     if(!res.ok) return null;
-    const js=await res.json();
-    if(!js.documents||!js.documents.length) return null;
-
-    // 결과 중 가장 신뢰도 높은 것 선택
-    const best=pickBestKakaoResult(company, js.documents);
+    const js = await res.json();
+    if(!js.documents || !js.documents.length) return null;
+ 
+    const best = pickBestKakaoResult(query, js.documents);
     if(!best) return null;
-
-    const lat=parseFloat(best.y), lng=parseFloat(best.x);
+ 
+    const lat = parseFloat(best.y), lng = parseFloat(best.x);
     if(lat<33||lat>38.5||lng<124||lng>132) return null;
-    const addr=best.road_address_name||best.address_name||'';
-    const region=extractSigunguFromAddr(addr);
+    const addr = best.road_address_name || best.address_name || '';
+    const region = extractSigunguFromAddr(addr);
     return {lat, lng, region};
   }catch(e){ return null; }
+}
+ 
+function _generateNameVariations(name){
+  const variations = [];
+  // "부속/부설" 앞에 공백 추가: "동덕여자대학교부속유치원" → "동덕여자대학교 부속유치원"
+  if(/(부속|부설|직속|소속)/.test(name) && !/\s(부속|부설|직속|소속)/.test(name)){
+    variations.push(name.replace(/(부속|부설|직속|소속)/, ' $1'));
+  }
+  // 일반적인 접미사 앞에 공백 추가: "삼성서울병원" → "삼성서울 병원"
+  const suffixes = ['병원','의원','학교','센터','지점','지사','사무소','연구소','연구원','협회','공단','공사','법인','재단','복지관','요양원'];
+  for(const sfx of suffixes){
+    if(name.endsWith(sfx) && name.length > sfx.length + 1 && !name.includes(' ' + sfx)){
+      variations.push(name.slice(0, -sfx.length) + ' ' + sfx);
+      break;
+    }
+  }
+  // 원본에 공백이 있으면 공백 제거한 버전도 시도
+  if(name.includes(' ')){
+    variations.push(name.replace(/\s+/g,''));
+  }
+  return variations;
 }
 
 function pickBestKakaoResult(query, docs){
@@ -1452,11 +1473,53 @@ async function geocodeNaver(company){
 // 카카오 주소 문자열 → 시군구 추출
 // 예: "경기도 수원시 팔달구 인계로 123" → "경기 수원시 팔달구"
 function extractSigunguFromAddr(addr){
-  if(!addr)return '';
-  const parts=addr.split(' ');
-  let result=[];
-  for(const p of parts){
-    if(/도$|특별시$|광역시$|특별자치시$|특별자치도$/.test(p)){
+  if(!addr) return '';
+ 
+  // 시도 정규화: 긴 형식과 짧은 형식 모두 인식
+  const SIDO_MAP = {
+    '서울특별시':'서울','서울':'서울',
+    '부산광역시':'부산','부산':'부산',
+    '대구광역시':'대구','대구':'대구',
+    '인천광역시':'인천','인천':'인천',
+    '광주광역시':'광주','광주':'광주',
+    '대전광역시':'대전','대전':'대전',
+    '울산광역시':'울산','울산':'울산',
+    '세종특별자치시':'세종','세종':'세종',
+    '경기도':'경기','경기':'경기',
+    '강원특별자치도':'강원','강원도':'강원','강원':'강원',
+    '충청북도':'충북','충북':'충북',
+    '충청남도':'충남','충남':'충남',
+    '전라북도':'전북','전북특별자치도':'전북','전북':'전북',
+    '전라남도':'전남','전남':'전남',
+    '경상북도':'경북','경북':'경북',
+    '경상남도':'경남','경남':'경남',
+    '제주특별자치도':'제주','제주도':'제주','제주':'제주',
+  };
+ 
+  const BIG_CITIES = new Set(['서울','부산','대구','인천','광주','대전','울산']);
+  const parts = addr.split(/\s+/).filter(Boolean);
+  if(parts.length === 0) return '';
+ 
+  // 1) 첫 단어가 시도인지 확인 (긴 형식/짧은 형식 모두 처리)
+  const sido = SIDO_MAP[parts[0]];
+  if(!sido){
+    // 시도가 아니면 ensureFullRegionName으로 보완 시도 (예: "강남구" → "서울 강남구")
+    return ensureFullRegionName(parts[0]);
+  }
+ 
+  // 2) 두 번째 단어가 시/군/구인지 확인
+  if(parts.length < 2) return sido;
+  const second = parts[1];
+  if(!/시$|군$|구$/.test(second)) return sido;
+ 
+  // 3) 일반 시(수원시 등) 다음에 또 구가 올 수 있음
+  // 광역시(서울/부산 등)는 바로 구가 오므로 추가 안 함
+  if(!BIG_CITIES.has(sido) && /시$/.test(second) && parts.length >= 3 && /구$/.test(parts[2])){
+    return sido + ' ' + second + ' ' + parts[2];
+  }
+ 
+  return sido + ' ' + second;
+}
       // 시도 축약
       result=[p.replace(/특별자치도$|특별자치시$|특별시$|광역시$/,'').replace(/도$/,'')];
     } else if(/시$|군$|구$/.test(p)&&result.length>0){
